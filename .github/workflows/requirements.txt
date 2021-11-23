@@ -1,4 +1,0 @@
-numpy
-cv2
-os
-subprocess
