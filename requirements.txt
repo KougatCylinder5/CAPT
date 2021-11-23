@@ -1,4 +1,4 @@
 numpy
-cv2
+python-opencv
 os
 subprocess
