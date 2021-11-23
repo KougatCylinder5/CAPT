@@ -1,4 +1,3 @@
-sys
 numpy
 cv2
 os
