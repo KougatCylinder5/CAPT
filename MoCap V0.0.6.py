@@ -20,6 +20,7 @@ def callback (event,x,y,flags,params):
     global maxgreen
     global mingreen
     global gx,gy
+    global hsv
     if(params[0] == 1 and flags == 1):
         
         if(params[1] == 0):
@@ -39,6 +40,7 @@ def callback (event,x,y,flags,params):
             state = numpy.array([0,0,state[3]])
     gx = x
     gy = y
+    print(hsv[y,x])
     
 state = numpy.array([0,0])
 cv2.setMouseCallback("LiveFeed",callback,state)
@@ -59,11 +61,11 @@ def recalibrate(value):
 cv2.createTrackbar("Recalibrate","LiveFeed",0,1,recalibrate)
 
 maxred = (11,255,255)
-minred = (4,160,0)
+minred = (4,130,0)
 maxgreen = (90,255,255)
-mingreen = (57,75,20)
+mingreen = (50,100,20)
 maxblue = (120,255,255)
-minblue = (100,70,0)
+minblue = (100,50,0)
 
 while(cv2.waitKey(1) != 27):
     ret,frame = vid.read()
@@ -71,9 +73,8 @@ while(cv2.waitKey(1) != 27):
         print("Broke")
         break
     ogFrame = frame.copy()
-    frame = cv2.blur(frame, (15,15),cv2.BORDER_DEFAULT)
+    frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT)
     hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
-    state = numpy.array(state[0],state[1],hsv)
     cv2.imshow("blur",frame)
     
     redParts = cv2.inRange(hsv,minred,maxred)
@@ -95,7 +96,7 @@ while(cv2.waitKey(1) != 27):
             middle = hsv[cYR,cXR][1] + 30
             if(middle > 255):
                 middle = 255
-            print(tuple(hsv[cYR,cXR][0] - 2,200,0),tuple(hsv[cYR,cXR][0] + 2,255,255))
+            #print(tuple(hsv[cYR,cXR][0] - 2,200,0),tuple(hsv[cYR,cXR][0] + 2,255,255))
             
     M = cv2.moments(greenParts)
     cXG = None
@@ -110,7 +111,7 @@ while(cv2.waitKey(1) != 27):
         cXB = int(M["m10"] / M["m00"])
         cYB = int(M["m01"] / M["m00"])
         cv2.circle(ogFrame,(cXB, cYB),15,(255,0,0),-1)
-        print(cXB,cYB,hsv[cYB,cXB])
+        #print(cXB,cYB,hsv[cYB,cXB])
     
     if(cXG != None and cXR != None):    
         cv2.line(ogFrame,(cXG,cYG),(cXR,cYR),(255,255,255),10)
@@ -122,3 +123,4 @@ while(cv2.waitKey(1) != 27):
     
 cv2.destroyAllWindows()
 vid.release()
+
