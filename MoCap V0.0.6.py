@@ -62,8 +62,6 @@ mingreen = (57,75,20)
 maxblue = (120,255,255)
 minblue = (100,70,0)
 
-recalibrate(1)
-
 while(cv2.waitKey(1) != 27):
     ret,frame = vid.read()
     if(not ret):
@@ -92,7 +90,7 @@ while(cv2.waitKey(1) != 27):
             middle = hsv[cYR,cXR][1] + 30
             if(middle > 255):
                 middle = 255
-            #print(tuple([hsv[cYR,cXR][0] - 2,200,0]),tuple([hsv[cYR,cXR][0] + 2,255,255]))
+            #print(tuple(hsv[cYR,cXR][0] - 2,200,0),tuple(hsv[cYR,cXR][0] + 2,255,255))
     M = cv2.moments(greenParts)
     cXG = None
     if(M["m00"] != 0):
