@@ -60,12 +60,12 @@ def recalibrate(value):
 
 cv2.createTrackbar("Recalibrate","LiveFeed",0,1,recalibrate)
 
-maxred = (11,255,255)
-minred = (4,130,0)
-maxgreen = (90,255,255)
-mingreen = (50,100,20)
-maxblue = (120,255,255)
-minblue = (100,50,0)
+maxred = [11,255,255]
+minred = [4,130,0]
+maxgreen = [90,255,255]
+mingreen = [50,100,20]
+maxblue = [120,255,255]
+minblue = [100,50,0]
 
 while(cv2.waitKey(1) != 27):
     ret,frame = vid.read()
@@ -91,12 +91,11 @@ while(cv2.waitKey(1) != 27):
         cXR = int(M["m10"] / M["m00"])
         cYR = int(M["m01"] / M["m00"])
         cv2.circle(ogFrame,(cXR, cYR),15,(0,0,255),-1)
-        if(cYR < 480 and cXR < 600):
-            #print(cXR,cYR,hsv[cYR,cXR])
-            middle = hsv[cYR,cXR][1] + 30
-            if(middle > 255):
-                middle = 255
-            #print(tuple(hsv[cYR,cXR][0] - 2,200,0),tuple(hsv[cYR,cXR][0] + 2,255,255))
+        middle = hsv[cYR,cXR][1] + 30
+        if(middle > 255):
+            middle = 255
+        minred = [hsv[cYR,cXR][0] - 2,middle - 125,0]
+        maxred = [hsv[cYR,cXR][0] + 2,middle,255]
             
     M = cv2.moments(greenParts)
     cXG = None
