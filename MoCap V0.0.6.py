@@ -48,7 +48,7 @@ cv2.setMouseCallback("LiveFeed",callback,state)
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
 vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)
-
+ 
 def recalibrate(value):
     global state
     if(value == 1):
