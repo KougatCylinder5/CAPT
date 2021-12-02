@@ -5,7 +5,7 @@ import numpy
 import sys
 import subprocess
 import os
-
+import statistics
 cv2.namedWindow("LiveFeed")
 
 def callback (event,x,y,flags,params):
@@ -113,13 +113,34 @@ while(cv2.waitKey(1) != 27):
         cYB = int(M["m01"] / M["m00"])
         cv2.circle(ogFrame,(cXB, cYB),15,(255,0,0),-1)
         #print(cXB,cYB,hsv[cYB,cXB])
+    complete = 0
     
     if(cXG != None and cXR != None):    
         cv2.line(ogFrame,(cXG,cYG),(cXR,cYR),(255,255,255),10)
-    
+        complete = complete + 1
+        
     if(cXG != None and cXB != None):    
         cv2.line(ogFrame,(cXG,cYG),(cXB,cYB),(255,255,255),10)
+        complete = complete + 1
         
+    if(complete == 2):
+        
+        points = numpy.array([[cXR,cYR], [cXG,cYG], [cXB,cYB]])
+       
+        A = points[2] - points[0]
+        B = points[1] - points[0]
+        C = points[2] - points[1]
+
+        angles = []
+        
+        for e1, e2 in ((A, B), (A, C), (B, -C)):
+            num = numpy.dot(e1, e2)
+            denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
+            angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
+        
+        print((int(statistics.mean([cXR,cXG,cXB])),int(statistics.mean([cYR,cYG,cYB]))))
+        cv2.putText(ogFrame,str(round(angles[2],0))[:-2] + " degrees",(int(statistics.mean([cXR,cXG,cXB])),int(statistics.mean([cYR,cYG,cYB]))),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),3)
+
     cv2.imshow("LiveFeed",ogFrame)
     
 cv2.destroyAllWindows()
