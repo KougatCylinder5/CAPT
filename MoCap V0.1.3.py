@@ -1,11 +1,23 @@
 #Cory Mavis
 
+
+import pandas
 import cv2
 import numpy
 import sys
 import subprocess
 import os
 import statistics
+import math
+from time import time
+import tkinter as tk
+from tkinter import filedialog
+
+root = tk.Tk()
+root.withdraw()
+
+
+
 cv2.namedWindow("LiveFeed")
 
 def callback (event,x,y,flags,params):
@@ -15,10 +27,12 @@ def callback (event,x,y,flags,params):
     global state #update global value
     global maxColorOne
     global minColorOne
-    global maxColorThree
-    global minColorThree
     global maxColorTwo
     global minColorTwo
+    global maxColorThree
+    global minColorThree
+    global maxColorFour
+    global minColorFour
     global gx,gy
     global hsv
     global hide
@@ -26,7 +40,6 @@ def callback (event,x,y,flags,params):
     if(event == 4):
         cv2.setTrackbarPos("Calibrate","LiveFeed",0)
     if(params[0] == 1 and flags == 1 and event == 1):
-        print("working")
         if(params[1] == 0):
             markThree = hsv[y,x]
             maxColorThree = numpy.array([markThree[0] + 8, 255, 255])
@@ -37,7 +50,7 @@ def callback (event,x,y,flags,params):
             maxColorTwo = numpy.array([markTwo[0] + 10, 255, 255])
             if(markTwo[2] - 100 < 20):
                 markTwo[2] = 120
-            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 100, markTwo[2] - 100])
+            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 50, markTwo[2] - 100])
 
         elif(params[1] == 2):
             markOne = hsv[y,x]
@@ -49,7 +62,7 @@ def callback (event,x,y,flags,params):
             markFour = hsv[y,x]
             maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
             minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
-
+            
         state[1] = params[1] + 1
         if(state[1] == 4):
             state = numpy.array([0,0])
@@ -61,9 +74,7 @@ def callback (event,x,y,flags,params):
     gy = y
     
 state = numpy.array([0,0])
-
 cv2.setMouseCallback("LiveFeed",callback,state)
-
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
 vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)
@@ -73,17 +84,11 @@ vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
 
 hide = True
-
 def recalibrate(value):
     global state
     global hide
     global angle
     if(value == 1):
-        try:
-            params[0] = 1
-            print(params)
-        except:
-            print("error")
         hide = False
         angle = [None] * 20
         state[0] = 1
@@ -92,12 +97,46 @@ def recalibrate(value):
         print("Choose New Points for color calibration in this order:")
         print("Blue, Green, Red")
         
+def record(value):
+    global record
+    if(value == 1):
+        record = True
+    else:
+        record = False
 
+i = 0
+file = None
+def rewatch(value):
+    global file
+    if(value == 1):
+        file_path = filedialog.askopenfilename()
+        #cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
+        print(file_path)
+        if(len(file_path) > 0):
+            file = pandas.read_csv(file_path)
+        else:
+            cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
+
+        
 cv2.createTrackbar("Calibrate","LiveFeed",0,1,recalibrate)
+cv2.createTrackbar("Record","LiveFeed",0,1,record)
+cv2.createTrackbar("Save?","LiveFeed",0,1,lambda x: None)
+cv2.createTrackbar("ReWatch?","LiveFeed",0,1,rewatch)
+
+record = False
+
+dtime = []
+
+dX1 = []
+dY1 = []
+dX2 = []
+dY2 = []
+dX3 = []
+dY3 = []
+dX4 = []
+dY4 = []
 
 angle = [None] * 10
-
-print(angle)
 
 maxColorOne = (8,255,255)
 minColorOne = (2,130,55)
@@ -106,7 +145,8 @@ minColorTwo = (50,100,20)
 maxColorThree = (120,255,255)
 minColorThree = (100,50,0)
 maxColorFour = (29,255,255)
-minColorFour = (13,205,182)
+minColorFour = (13,205,182)   
+
 while(cv2.waitKey(1) != 27):
     ret,frame = vid.read()
     if(not ret):
@@ -170,6 +210,33 @@ while(cv2.waitKey(1) != 27):
         cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
     complete = 0
     
+       
+    if(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 1):
+        length = len(file["Unnamed: 0"])
+        if(i > length - 3):
+            i = 0
+            cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
+            continue
+        else:
+            i = i + 1
+            
+        cX1 = file["cX1"][i]
+        cY1 = file["cY1"][i]
+        cX2 = file["cX2"][i]
+        cY2 = file["cY2"][i]
+        cX3 = file["cX3"][i]
+        cY3 = file["cY3"][i]
+        cX4 = file["cX4"][i]
+        cY4 = file["cY4"][i]
+        ogFrame = numpy.zeros((len(ogFrame),len(ogFrame[0]),3))
+        cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)
+        cv2.circle(ogFrame,(cX2, cY2),15,(0,255,0),-1)
+        cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
+        cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
+        cv2.waitKey(file["time"][i + 1] - file["time"][i])
+        #print(file["time"][i + 1] - file["time"][i])
+        
+    
     if(cX2 != None and cX1 != None and hide):    
         cv2.line(ogFrame,(cX2,cY2),(cX1,cY1),(255,255,255),10)
         complete = complete + 1
@@ -178,9 +245,24 @@ while(cv2.waitKey(1) != 27):
         cv2.line(ogFrame,(cX3,cY3),(cX4,cY4),(255,255,255),10)
         complete = complete + 1
     
-      
-    if(complete == 2 and hide):
+    
+    
+    if(complete == 2 and hide and cX1 != cX2 and cX3 != cX4):
         
+        if(record):
+            
+            dtime.append(math.floor(time()*1000))
+        
+            dX1.append(cX1)
+            dY1.append(cY1)
+            dX2.append(cX2)
+            dY2.append(cY2)
+            dX3.append(cX3)
+            dY3.append(cY3)
+            dX4.append(cX4)
+            dY4.append(cY4)
+            
+                
         m1 = (cY1-cY2)/(cX1-cX2)
         m2 = (cY3-cY4)/(cX3-cX4)
         b1 = cY1 - m1 * cX1
@@ -188,8 +270,7 @@ while(cv2.waitKey(1) != 27):
         if(m1 != m2):
             xi = (b1 - b2) / (m2 - m1)
             yi = m1 * xi + b1
-            print(xi,yi)
-            cv2.circle(ogFrame,(int(xi),int(yi)),15,(0,0,0),15)
+            cv2.circle(ogFrame,(int(xi),int(yi)),15,(150,150,150),-1)
       
         points = numpy.array([[cX1,cY1], [xi,yi], [cX4,cY4]])
         
@@ -210,12 +291,18 @@ while(cv2.waitKey(1) != 27):
         del angle[0]
             
         if(angle[0] != None):
-            print(angle)
             outangle = int(statistics.mean(angle))
-            print(outangle)
-            cv2.putText(ogFrame,str(outangle) + " degrees",(int(statistics.mean([cX1,cX2,cX3])),int(statistics.mean([cY1,cY2,cY3]))),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),3)
-
+            cv2.putText(ogFrame,str(outangle) + " degrees",(int(statistics.mean([cX1,cX2,cX3])),int(statistics.mean([cY1,cY2,cY3]))),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),3)
+    else:
+        cv2.setTrackbarPos("Record", "LiveFeed",0)
+        
     cv2.imshow("LiveFeed",ogFrame)
     
+    if(cv2.getTrackbarPos("Save?","LiveFeed") == 1):
+        db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4}
+        columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")
+        df = pandas.DataFrame(data = db)
+        df.to_csv("MoCap.csv")
+
 cv2.destroyAllWindows()
 vid.release()
