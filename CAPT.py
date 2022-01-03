@@ -6,26 +6,26 @@ import numpy
 import sys
 import subprocess
 import os
-import os.path as path
+import os.path as path # directory library
 import statistics
 import math
 from time import time
-import tkinter as tk
+import tkinter as tk # file manipulation/selection library
 from tkinter import filedialog
 
 root = tk.Tk()
-root.withdraw()
+root.withdraw() # deletes empty Tninter box
 
 
 
 cv2.namedWindow("LiveFeed")
 
-def callback (event,x,y,flags,params):
+def callback (event,x,y,flags,params): # mousecall back for clicks
     global markThree #update the position of the blue point
     global markTwo #update the position of the green point
     global markOne #update the position of the red point
     global state #update global value
-    global maxColorOne
+    global maxColorOne 
     global minColorOne
     global maxColorTwo
     global minColorTwo
@@ -33,22 +33,21 @@ def callback (event,x,y,flags,params):
     global minColorThree
     global maxColorFour
     global minColorFour
-    global gx,gy
-    global hsv
-    global hide
+    global hsv # grabs frame from camera to use in function
+    global hide # tells the program to hide the lines connecting the dots while calibrating
     
     if(event == 4):
         cv2.setTrackbarPos("Calibrate","LiveFeed",0)
     if(params[0] == 1 and flags == 1 and event == 1):
         if(params[1] == 2):
             markThree = hsv[y,x]
-            maxColorThree = numpy.array([markThree[0] + 8, 255, 255])
+            maxColorThree = numpy.array([markThree[0] + 8, 255, 255]) # defines upper and lower limit
             minColorThree = numpy.array([markThree[0] - 8, markThree[1] - 50, markThree[2] - 20])
             
         elif(params[1] == 0):
             markTwo = hsv[y,x]
             maxColorTwo = numpy.array([markTwo[0] + 10, 255, 255])
-            if(markTwo[2] - 100 < 20):
+            if(markTwo[2] - 100 < 20):# prevents negative numbers 
                 markTwo[2] = 120
             minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 50, markTwo[2] - 100])
 
@@ -64,7 +63,7 @@ def callback (event,x,y,flags,params):
             minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
             
         state[1] = params[1] + 1
-        if(state[1] == 4):
+        if(state[1] == 4): # I don't even know how this works it just works
             state = numpy.array([0,0])
             params[1] = 0
             params[0] = 0
@@ -73,11 +72,11 @@ def callback (event,x,y,flags,params):
     gx = x
     gy = y
     
-state = numpy.array([0,0])
+state = numpy.array([0,0]) #settings for callback functions it does a job that regulates things
 cv2.setMouseCallback("LiveFeed",callback,state)
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
-vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)
+vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
