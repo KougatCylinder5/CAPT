@@ -1,12 +1,12 @@
 #Cory Mavis
 
 
-import pandas
-import cv2
+import pandas # CSV manipulation library
 import numpy
 import sys
 import subprocess
 import os
+import os.path as path
 import statistics
 import math
 from time import time
@@ -40,19 +40,19 @@ def callback (event,x,y,flags,params):
     if(event == 4):
         cv2.setTrackbarPos("Calibrate","LiveFeed",0)
     if(params[0] == 1 and flags == 1 and event == 1):
-        if(params[1] == 0):
+        if(params[1] == 2):
             markThree = hsv[y,x]
             maxColorThree = numpy.array([markThree[0] + 8, 255, 255])
             minColorThree = numpy.array([markThree[0] - 8, markThree[1] - 50, markThree[2] - 20])
             
-        elif(params[1] == 1):
+        elif(params[1] == 0):
             markTwo = hsv[y,x]
             maxColorTwo = numpy.array([markTwo[0] + 10, 255, 255])
             if(markTwo[2] - 100 < 20):
                 markTwo[2] = 120
             minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 50, markTwo[2] - 100])
 
-        elif(params[1] == 2):
+        elif(params[1] == 1):
             markOne = hsv[y,x]
             maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
             if(markOne[2] - 100 < 55):
@@ -95,7 +95,7 @@ def recalibrate(value):
         state[1] = 0
         cv2.setMouseCallback("LiveFeed",callback,state)
         print("Choose New Points for color calibration in this order:")
-        print("Blue, Green, Red")
+        print("Green, Red, Gold, Blue")
         
 def record(value):
     global record
@@ -110,8 +110,6 @@ def rewatch(value):
     global file
     if(value == 1):
         file_path = filedialog.askopenfilename()
-        #cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
-        print(file_path)
         if(len(file_path) > 0):
             file = pandas.read_csv(file_path)
         else:
@@ -176,11 +174,6 @@ while(cv2.waitKey(1) != 27):
     colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_OPEN, kernel)
     colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_CLOSE, kernel)
 
-    cv2.imshow("Angles Feed",colorOne)
-    cv2.imshow("Green Parts",colorTwo)
-    cv2.imshow("Blue Parts",colorThree)
-    cv2.imshow("Yellow Parts",colorFour)
-
     M = cv2.moments(colorOne)
     cX1 = None
     if(M["m00"] != 0):
@@ -234,7 +227,6 @@ while(cv2.waitKey(1) != 27):
         cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
         cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
         cv2.waitKey(file["time"][i + 1] - file["time"][i])
-        #print(file["time"][i + 1] - file["time"][i])
         
     
     if(cX2 != None and cX1 != None and hide):    
@@ -302,10 +294,15 @@ while(cv2.waitKey(1) != 27):
         db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4}
         columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")
         df = pandas.DataFrame(data = db)
-        if(not os.path.exists(path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP")):
-           os.makedirs(os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP")
-        saveLocation = askopen.asksaveasfile(filetype = [("CSV Files":"*.csv")], defaultdir = os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP"))
-        df.to_csv("MoCap.csv")
-
+        if(not path.exists(path.join("C:","Users",path.expanduser("~"),"Documents","MOCAP"))):
+           os.makedirs(path.join("C:","Users",path.expanduser("~"),"Documents","MOCAP"))
+        saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP"))
+        if(len(saveLocation) != 0):
+            df.to_csv(saveLocation)
+        cv2.setTrackbarPos("Save?","LiveFeed",0)
+            
+            
+            
 cv2.destroyAllWindows()
 vid.release()
+
