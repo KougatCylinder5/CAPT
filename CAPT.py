@@ -69,10 +69,8 @@ def callback (event,x,y,flags,params): # mousecall back for clicks
             params[0] = 0
             print("complete")
             hide = True
-    gx = x
-    gy = y
     
-state = numpy.array([0,0]) #settings for callback functions it does a job that regulates things
+state = numpy.array([0,0]) #settings for callback functions it does a job that regulates thingies
 cv2.setMouseCallback("LiveFeed",callback,state)
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
@@ -83,29 +81,29 @@ vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
 
 hide = True
-def recalibrate(value):
+def recalibrate(value): # starts the recalibration sequence to assign points
     global state
     global hide
     global angle
     if(value == 1):
         hide = False
-        angle = [None] * 20
+        angle = [None] * 20 # resets the angle array for averaging the angle to prevent irregulaties
         state[0] = 1
         state[1] = 0
         cv2.setMouseCallback("LiveFeed",callback,state)
         print("Choose New Points for color calibration in this order:")
         print("Green, Red, Gold, Blue")
         
-def record(value):
+def record(value): # determines if the "Record?" Slider has been altered
     global record
     if(value == 1):
         record = True
     else:
-        record = False
+        record = False 
 
-i = 0
+
 file = None
-def rewatch(value):
+def rewatch(value): # function to determine if to open a .csv file for playback
     global file
     if(value == 1):
         file_path = filedialog.askopenfilename()
@@ -115,16 +113,16 @@ def rewatch(value):
             cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
 
         
-cv2.createTrackbar("Calibrate","LiveFeed",0,1,recalibrate)
+cv2.createTrackbar("Calibrate","LiveFeed",0,1,recalibrate) # creating trackbars for grabbing user input
 cv2.createTrackbar("Record","LiveFeed",0,1,record)
 cv2.createTrackbar("Save?","LiveFeed",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","LiveFeed",0,1,rewatch)
 
 record = False
 
-dtime = []
+dtime = [] # array to store the length of each frame for playback
 
-dX1 = []
+dX1 = []# blank arrays for recording values
 dY1 = []
 dX2 = []
 dY2 = []
@@ -133,9 +131,9 @@ dY3 = []
 dX4 = []
 dY4 = []
 
-angle = [None] * 10
+angle = [None] * 10 # empty array for averaging the degrees
 
-maxColorOne = (8,255,255)
+maxColorOne = (8,255,255) #defines min and max for each of the colors on default
 minColorOne = (2,130,55)
 maxColorTwo = (90,255,255)
 minColorTwo = (50,100,20)
@@ -144,66 +142,69 @@ minColorThree = (100,50,0)
 maxColorFour = (29,255,255)
 minColorFour = (13,205,182)   
 
-while(cv2.waitKey(1) != 27):
-    ret,frame = vid.read()
-    if(not ret):
-        print("Broke")
-        break
-    ogFrame = frame.copy()
-    frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT)
-    hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
-    cv2.imshow("blur",frame)
-    
-    colorOne = cv2.inRange(hsv,minColorOne,maxColorOne)
-    colorTwo = cv2.inRange(hsv,minColorTwo,maxColorTwo)
-    colorThree = cv2.inRange(hsv,minColorThree,maxColorThree)
-    colorFour = cv2.inRange(hsv,minColorFour,maxColorFour)
-    
-    kernel = numpy.ones((15,15),numpy.uint8)
-    
-    colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)
-    colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)
-    
-    colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_OPEN, kernel)
-    colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_CLOSE, kernel)
-    
-    colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_OPEN, kernel)
-    colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_CLOSE, kernel)
-    
-    colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_OPEN, kernel)
-    colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_CLOSE, kernel)
+i = 0  # creates blank value for, the for loop for replaying files
 
-    M = cv2.moments(colorOne)
-    cX1 = None
-    if(M["m00"] != 0):
-        cX1 = int(M["m10"] / M["m00"])
-        cY1 = int(M["m01"] / M["m00"])
-        cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)
-        
-    M = cv2.moments(colorTwo)
-    cX2 = None
-    if(M["m00"] != 0):
-        cX2 = int(M["m10"] / M["m00"])
-        cY2 = int(M["m01"] / M["m00"])
-        cv2.circle(ogFrame,(cX2, cY2),15,(0,255,0),-1)
-    
-    M = cv2.moments(colorThree)
-    cX3 = None
-    if(M["m00"] != 0):
-        cX3 = int(M["m10"] / M["m00"])
-        cY3 = int(M["m01"] / M["m00"])
-        cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
-        
-    M = cv2.moments(colorFour)
-    cX4 = None
-    if(M["m00"] != 0):
-        cX4 = int(M["m10"] / M["m00"])
-        cY4 = int(M["m01"] / M["m00"])
-        cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
-    complete = 0
-    
+while(cv2.waitKey(1) != 27):
+    if(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 0):
+        ret,frame = vid.read()
+        if(not ret):
+            print("Broke")
+            break
+        ogFrame = frame.copy()
+        frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT)
+        hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+        cv2.imshow("blur",frame)
+
+        colorOne = cv2.inRange(hsv,minColorOne,maxColorOne)
+        colorTwo = cv2.inRange(hsv,minColorTwo,maxColorTwo)
+        colorThree = cv2.inRange(hsv,minColorThree,maxColorThree)
+        colorFour = cv2.inRange(hsv,minColorFour,maxColorFour)
+
+        kernel = numpy.ones((15,15),numpy.uint8)
+
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)
+
+        colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_OPEN, kernel)
+        colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_CLOSE, kernel)
+
+        colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_OPEN, kernel)
+        colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_CLOSE, kernel)
+
+        colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_OPEN, kernel)
+        colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_CLOSE, kernel)
+
+        M = cv2.moments(colorOne)
+        cX1 = None
+        if(M["m00"] != 0):
+            cX1 = int(M["m10"] / M["m00"])
+            cY1 = int(M["m01"] / M["m00"])
+            cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)
+
+        M = cv2.moments(colorTwo)
+        cX2 = None
+        if(M["m00"] != 0):
+            cX2 = int(M["m10"] / M["m00"])
+            cY2 = int(M["m01"] / M["m00"])
+            cv2.circle(ogFrame,(cX2, cY2),15,(0,255,0),-1)
+
+        M = cv2.moments(colorThree)
+        cX3 = None
+        if(M["m00"] != 0):
+            cX3 = int(M["m10"] / M["m00"])
+            cY3 = int(M["m01"] / M["m00"])
+            cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
+
+        M = cv2.moments(colorFour)
+        cX4 = None
+        if(M["m00"] != 0):
+            cX4 = int(M["m10"] / M["m00"])
+            cY4 = int(M["m01"] / M["m00"])
+            cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
+        complete = 0
+
        
-    if(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 1):
+    elif(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 1):
         length = len(file["Unnamed: 0"])
         if(i > length - 3):
             i = 0
