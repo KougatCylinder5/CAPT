@@ -302,6 +302,9 @@ while(cv2.waitKey(1) != 27):
         db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4}
         columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")
         df = pandas.DataFrame(data = db)
+        if(not os.path.exists(path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP")):
+           os.makedirs(os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP")
+        saveLocation = askopen.asksaveasfile(filetype = [("CSV Files":"*.csv")], defaultdir = os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP"))
         df.to_csv("MoCap.csv")
 
 cv2.destroyAllWindows()
