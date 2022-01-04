@@ -54,6 +54,7 @@ def callback (event,x,y,flags,params): # mousecall back for clicks
             if(markOne[2] - 100 < 55):
                 markOne[2] = 155
             minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 100])
+            
         elif(params[1] == 3):
             markFour = hsv[y,x]
             maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
@@ -69,13 +70,12 @@ def callback (event,x,y,flags,params): # mousecall back for clicks
     
 state = numpy.array([0,0]) #settings for callback functions it does a job that regulates thingies
 cv2.setMouseCallback("LiveFeed",callback,state)
+
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
 vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
-
-
 
 hide = True
 def recalibrate(value): # starts the recalibration sequence to assign points
@@ -90,7 +90,9 @@ def recalibrate(value): # starts the recalibration sequence to assign points
         cv2.setMouseCallback("LiveFeed",callback,state)
         print("Choose New Points for color calibration in this order:")
         print("Green, Red, Gold, Blue")
-        
+  
+record = False
+
 def record(value): # determines if the "Record?" Slider has been altered
     global record
     if(value == 1):
@@ -115,10 +117,7 @@ cv2.createTrackbar("Record","LiveFeed",0,1,record)
 cv2.createTrackbar("Save?","LiveFeed",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","LiveFeed",0,1,rewatch)
 
-record = False
-
 dtime = [] # array to store the length of each frame for playback
-
 dX1 = []# blank arrays for recording values for each of the points
 dY1 = []
 dX2 = []
@@ -128,7 +127,7 @@ dY3 = []
 dX4 = []
 dY4 = []
 
-angle = [None] * 10 # empty array for averaging the degrees
+angle = [None] * 20 # empty array for averaging the degrees
 
 maxColorOne = (8,255,255) #defines min and max for each of the colors on default
 minColorOne = (2,130,55)
