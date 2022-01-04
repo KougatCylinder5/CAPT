@@ -21,11 +21,8 @@ root.withdraw() # deletes empty Tninter box
 cv2.namedWindow("LiveFeed")
 
 def callback (event,x,y,flags,params): # mousecall back for clicks
-    global markThree #update the position of the blue point
-    global markTwo #update the position of the green point
-    global markOne #update the position of the red point
     global state #update global value
-    global maxColorOne 
+    global maxColorOne #fairly obvious variable names
     global minColorOne
     global maxColorTwo
     global minColorTwo
@@ -62,7 +59,7 @@ def callback (event,x,y,flags,params): # mousecall back for clicks
             maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
             minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
             
-        state[1] = params[1] + 1
+        state[1] = params[1] + 1#adds one to the state global so that it sets the next color the next time it is clicked instead of the same one
         if(state[1] == 4): # I don't even know how this works it just works
             state = numpy.array([0,0])
             params[1] = 0
@@ -122,7 +119,7 @@ record = False
 
 dtime = [] # array to store the length of each frame for playback
 
-dX1 = []# blank arrays for recording values
+dX1 = []# blank arrays for recording values for each of the points
 dY1 = []
 dX2 = []
 dY2 = []
@@ -145,25 +142,25 @@ minColorFour = (13,205,182)
 i = 0  # creates blank value for, the for loop for replaying files
 
 while(cv2.waitKey(1) != 27):
-    if(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 0):
-        ret,frame = vid.read()
-        if(not ret):
+    if(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 0):#skips a ton of unnessicary logic if the slider isn't in the correct position
+        ret,frame = vid.read() #read from camera
+        if(not ret):#prevents throwing an error due to missing or occupied camera
             print("Broke")
             break
-        ogFrame = frame.copy()
-        frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT)
-        hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
-        cv2.imshow("blur",frame)
+        ogFrame = frame.copy() # duplicates the frame for overlay purposes
+        frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT) # blurs the frame make color detection easier and more uniform
+        hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)#converts from the BGR to HSV colorspace
+        cv2.imshow("blur",frame)#shows the blured image (delete after testing is complete)
 
-        colorOne = cv2.inRange(hsv,minColorOne,maxColorOne)
+        colorOne = cv2.inRange(hsv,minColorOne,maxColorOne) # grabs the inRange parts of the images
         colorTwo = cv2.inRange(hsv,minColorTwo,maxColorTwo)
         colorThree = cv2.inRange(hsv,minColorThree,maxColorThree)
         colorFour = cv2.inRange(hsv,minColorFour,maxColorFour)
 
-        kernel = numpy.ones((15,15),numpy.uint8)
+        kernel = numpy.ones((15,15),numpy.uint8)#just a 15x15 grid of ones
 
-        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)
-        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)# deletes pixel groups less then 15x15 in size
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)# fills holes pixel groups that are more then 15x15 in size with the hole being less then 15x15 in size
 
         colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_OPEN, kernel)
         colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_CLOSE, kernel)
@@ -174,12 +171,12 @@ while(cv2.waitKey(1) != 27):
         colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_OPEN, kernel)
         colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_CLOSE, kernel)
 
-        M = cv2.moments(colorOne)
-        cX1 = None
+        M = cv2.moments(colorOne) # nabs the moments data for the inRange calculations
+        cX1 = None# this is used to tetermine if the if statement has been run
         if(M["m00"] != 0):
-            cX1 = int(M["m10"] / M["m00"])
-            cY1 = int(M["m01"] / M["m00"])
-            cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)
+            cX1 = int(M["m10"] / M["m00"])# simple math to find the X location
+            cY1 = int(M["m01"] / M["m00"])#yada yada Y location
+            cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1) # put a dot on the location
 
         M = cv2.moments(colorTwo)
         cX2 = None
@@ -204,16 +201,16 @@ while(cv2.waitKey(1) != 27):
         complete = 0
 
        
-    elif(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 1):
-        length = len(file["Unnamed: 0"])
-        if(i > length - 3):
+    elif(cv2.getTrackbarPos("ReWatch?","LiveFeed") == 1): # math to jump straight to here if its replaying a recording
+        length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
+        if(i > length - 3):#prior said stopper
             i = 0
             cv2.setTrackbarPos("ReWatch?","LiveFeed",0)
             continue
         else:
             i = i + 1
             
-        cX1 = file["cX1"][i]
+        cX1 = file["cX1"][i] # reads the locations of the points and puts them into the variables to be displayed 
         cY1 = file["cY1"][i]
         cX2 = file["cX2"][i]
         cY2 = file["cY2"][i]
@@ -221,15 +218,15 @@ while(cv2.waitKey(1) != 27):
         cY3 = file["cY3"][i]
         cX4 = file["cX4"][i]
         cY4 = file["cY4"][i]
-        ogFrame = numpy.zeros((len(ogFrame),len(ogFrame[0]),3))
-        cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)
+        ogFrame = numpy.zeros((len(ogFrame),len(ogFrame[0]),3)) # creates a black background so that it can put the dots on without interference
+        cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)#puts dots in the positions
         cv2.circle(ogFrame,(cX2, cY2),15,(0,255,0),-1)
         cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
         cv2.circle(ogFrame,(cX4, cY4),15,(78,255,237),-1)
-        cv2.waitKey(file["time"][i + 1] - file["time"][i])
+        cv2.waitKey(file["time"][i + 1] - file["time"][i])#wait for the alotted time so that it doesn't instantly zip to the end
         
     
-    if(cX2 != None and cX1 != None and hide):    
+    if(cX2 != None and cX1 != None and hide): #draw lines between the corrosponding dots
         cv2.line(ogFrame,(cX2,cY2),(cX1,cY1),(255,255,255),10)
         complete = complete + 1
         
@@ -239,13 +236,13 @@ while(cv2.waitKey(1) != 27):
     
     
     
-    if(complete == 2 and hide and cX1 != cX2 and cX3 != cX4):
+    if(complete == 2 and hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
         
-        if(record):
+        if(record):# only record if the slider says so
             
-            dtime.append(math.floor(time()*1000))
+            dtime.append(math.floor(time()*1000)) # get the current time in millis
         
-            dX1.append(cX1)
+            dX1.append(cX1)# append the current dot locations to a array so they can be saved
             dY1.append(cY1)
             dX2.append(cX2)
             dY2.append(cY2)
@@ -255,15 +252,18 @@ while(cv2.waitKey(1) != 27):
             dY4.append(cY4)
             
                 
-        m1 = (cY1-cY2)/(cX1-cX2)
+        m1 = (cY1-cY2)/(cX1-cX2)# calculate slope so we can determine where the lines intercept
         m2 = (cY3-cY4)/(cX3-cX4)
-        b1 = cY1 - m1 * cX1
+        b1 = cY1 - m1 * cX1# calculated the y-intercept for each line
         b2 = cY3 - m2 * cX3
-        if(m1 != m2):
+        if(m1 != m2):# if the lines are parralell stop to prevent an division by zero error
             xi = (b1 - b2) / (m2 - m1)
             yi = m1 * xi + b1
-            cv2.circle(ogFrame,(int(xi),int(yi)),15,(150,150,150),-1)
+            cv2.circle(ogFrame,(int(xi),int(yi)),15,(150,150,150),-1)# put a circle on the intercept location
       
+    
+        # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to https://stackoverflow.com/a/28530929 by Jason S
+        
         points = numpy.array([[cX1,cY1], [xi,yi], [cX4,cY4]])
         
         A = points[2] - points[0]
@@ -277,32 +277,38 @@ while(cv2.waitKey(1) != 27):
             denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
             angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
         
+        #I grab angle[2] as thats the inside angle and its always that angle
 
-        angle.append(int(str(round(angles[2],0))[:-2]))
+        angle.append(int(str(round(angles[2],0))[:-2]))#the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
    
-        del angle[0]
+        del angle[0]# deletes the first of my averaging array 
             
-        if(angle[0] != None):
-            outangle = int(statistics.mean(angle))
-            cv2.putText(ogFrame,str(outangle) + " degrees",(int(statistics.mean([cX1,cX2,cX3])),int(statistics.mean([cY1,cY2,cY3]))),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),3)
+        if(angle[0] != None):# doesn't run this if the averaging array is still filling
+            outangle = int(statistics.mean(angle))# take the average number of the whole array
+            cv2.putText(ogFrame,str(outangle) + " degrees",(int(statistics.mean([cX1,xi,cX4])),int(statistics.mean([cY1,yi,cY4]))),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),3)
+            #puts the outangle onto the screen inbetween the three points
     else:
-        cv2.setTrackbarPos("Record", "LiveFeed",0)
+        cv2.setTrackbarPos("Record", "LiveFeed",0) # stops recording if one of the points disappears from view
         
-    cv2.imshow("LiveFeed",ogFrame)
+    cv2.imshow("LiveFeed",ogFrame)# display frame
     
-    if(cv2.getTrackbarPos("Save?","LiveFeed") == 1):
-        db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4}
-        columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")
-        df = pandas.DataFrame(data = db)
-        if(not path.exists(path.join("C:","Users",path.expanduser("~"),"Documents","MOCAP"))):
-           os.makedirs(path.join("C:","Users",path.expanduser("~"),"Documents","MOCAP"))
-        saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = os.path.join("C:","Users",os.path.expanduser("~"),"Documents","MOCAP"))
-        if(len(saveLocation) != 0):
+    if(cv2.getTrackbarPos("Save?","LiveFeed") == 1): # if the user says to save this if statement compiles all the variables into a dicationary
+        db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4} # dictionary of values and each value is an array
+        columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")#headers for the .csv file
+        df = pandas.DataFrame(data = db)# create a data frame with the data equal to db
+        
+        dPath = path.join("C:","Users",path.expanduser("~"),"Documents","CAPT") # file path
+        
+        if(not path.exists(dPath)): # detect if a file exists in a specific directory
+           os.makedirs(dPath)   # create said file if it doesn't exist
+        
+        saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = dPath)
+        #^ allow user to pick the name of the save file and the location to save it defaulting in Documents/CAPT
+        
+        if(len(saveLocation) != 0): #check validity of the assigned save location, if cancel was clicked instead with will not run
             df.to_csv(saveLocation)
-        cv2.setTrackbarPos("Save?","LiveFeed",0)
-            
-            
-            
-cv2.destroyAllWindows()
+        cv2.setTrackbarPos("Save?","LiveFeed",0) # reset the trackbar asking if you want to save the recording to exit the loop
+                 
+cv2.destroyAllWindows() # delete the windows and free the camera to the user again
 vid.release()
 
