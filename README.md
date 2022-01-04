@@ -1,2 +1,2 @@
-# CAPT Computer Assisted Physical Therapy
+# Computer Assisted Physical Therapy
 Pretty straight forward
