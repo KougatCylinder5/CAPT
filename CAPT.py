@@ -22,84 +22,68 @@ root.withdraw() # deletes empty Tninter box
 cv2.namedWindow("LiveFeed",cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
-def callback (event,x,y,flags,params): # mousecall back for clicks
-    global state #update global value
-    global maxColorOne #fairly obvious variable names
-    global minColorOne
-    global maxColorTwo
-    global minColorTwo
-    global maxColorThree
-    global minColorThree
-    global maxColorFour
-    global minColorFour
-    global hsv # grabs frame from camera to use in function
-    global hide # tells the program to hide the lines connecting the dots while calibrating
-    
-    if(event == 4):
-        cv2.setTrackbarPos("Calibrate","UI",0)
-    if(params[0] == 1 and flags == 1 and event == 1):
-        if(params[1] == 2):
-            markThree = hsv[y,x]
-            maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
-            minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
-            
-        elif(params[1] == 0):
-            markTwo = hsv[y,x]
-            maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
-            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
+class calibrate:
 
-        elif(params[1] == 1):
-            markOne = hsv[y,x]
-            maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
-            if(markOne[2] - 100 < 55):
-                markOne[2] = 155
-            minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+    def __init__(self):
+        self.maxColorOne = (8,255,255) #defines min and max for each of the colors on default
+        self.minColorOne = (2,130,55)
+        self.maxColorTwo = (90,255,255)
+        self.minColorTwo = (50,100,20)
+        self.maxColorThree = (120,255,255)
+        self.minColorThree = (100,50,0)
+        self.maxColorFour = (29,255,255)
+        self.minColorFour = (13,205,182)   
+        self.clickNumber = 0
+        self.hide = True
+    def startCalibrating(self,x,y):
+        
+        if(self.clickNumber == 0):
+            markTwo = self.rawImg[y,x]
+            self.maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
+            self.minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
+            self.clickNumber = self.clickNumber + 1
             
-        elif(params[1] == 3):
-            markFour = hsv[y,x]
-            maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
-            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
+        elif(self.clickNumber == 1):
+            markOne = self.rawImg[y,x]
+            self.maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
+            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+            self.clickNumber = self.clickNumber + 1
             
-        state[1] = params[1] + 1#adds one to the state global so that it sets the next color the next time it is clicked instead of the same one
-        if(state[1] == 4): # I don't even know how this works it just works
-            state = numpy.array([0,0])
-            params[1] = 0
-            params[0] = 0
-            print("complete")
-            hide = True
-    
-state = numpy.array([0,0]) #settings for callback functions it does a job that regulates thingies
-cv2.setMouseCallback("LiveFeed",callback,state)
-
+        elif(self.clickNumber == 2):
+            markThree = self.rawImg[y,x]
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
+            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
+            self.clickNumber = self.clickNumber + 1
+            
+        elif(self.clickNumber == 3):
+            markFour = self.rawImg[y,x]
+            self.maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
+            self.minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])            
+            self.clickNumber = 0
+            self.hide = True
+            cv2.setTrackbarPos("Calibrate","UI",0)            
+        
+        else:
+            raise valueError("calibrate.clickNumber exceded maximum value")
+        
+    def __setattr__(self,name,value):
+        self.__dict__[name] = value
+    def __getattr__(self,name):
+        return self.__dict___[name]
+            
+def callback(event,x,y,flags,params): 
+    if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
+        Cali.startCalibrating(x,y)
+   
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
-vid.set(cv2.CAP_PROP_EXPOSURE, -5.0)     # camera default modifications
+vid.set(cv2.CAP_PROP_GAIN,165)
+vid.set(cv2.CAP_PROP_BRIGHTNESS, 165)
+vid.set(cv2.CAP_PROP_EXPOSURE, 3.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
-hide = True
-def recalibrate(value): # starts the recalibration sequence to assign points
-    global state
-    global hide
-    global angle
-    if(value == 1):
-        hide = False
-        angle = [None] * 5 # resets the angle array for averaging the angle to prevent irregulaties
-        state[0] = 1
-        state[1] = 0
-        cv2.setMouseCallback("LiveFeed",callback,state)
-        print("Choose New Points for color calibration in this order:")
-        print("Green, Red, Gold, Blue")
-  
-record = False
-
-def record(value): # determines if the "Record?" Slider has been altered
-    global record
-    if(value == 1):
-        record = True
-    else:
-        record = False 
-
+cv2.setMouseCallback("LiveFeed",callback)
 
 file = None
 def rewatch(value): # function to determine if to open a .csv file for playback
@@ -108,12 +92,14 @@ def rewatch(value): # function to determine if to open a .csv file for playback
         file_path = filedialog.askopenfilename()
         if(len(file_path) > 0):
             file = pandas.read_csv(file_path)
+            cv2.setTrackbarPos("Record","UI",0)
         else:
             cv2.setTrackbarPos("ReWatch?","UI",0)
+            
 
         
-cv2.createTrackbar("Calibrate","UI",0,1,recalibrate) # creating trackbars for grabbing user input
-cv2.createTrackbar("Record","UI",0,1,record)
+cv2.createTrackbar("Calibrate","UI",0,1,lambda x: None) # creating trackbars for grabbing user input
+cv2.createTrackbar("Record","UI",0,1,lambda x: None)
 cv2.createTrackbar("Save?","UI",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","UI",0,1,rewatch)
 
@@ -129,20 +115,22 @@ dY4 = []
 
 angle = [None] * 5 # empty array for averaging the degrees
 
-maxColorOne = (8,255,255) #defines min and max for each of the colors on default
-minColorOne = (2,130,55)
-maxColorTwo = (90,255,255)
-minColorTwo = (50,100,20)
-maxColorThree = (120,255,255)
-minColorThree = (100,50,0)
-maxColorFour = (29,255,255)
-minColorFour = (13,205,182)   
+Cali = calibrate()
 
 i = 0  # creates blank value for, the for loop for replaying files
 
 while(cv2.waitKey(1) != 27):
+    
+    if(cv2.getTrackbarPos("Calibrate","UI") == 1 and Cali.hide):
+        angle = [None] * 5 # resets the angle array for averaging the angle to prevent irregulaties
+
+        print("Choose New Points for color calibration in this order:")
+        print("Green, Red, Gold, Blue")
+        Cali.hide = False
+    
     if(cv2.getTrackbarPos("ReWatch?","UI") == 0):#skips a ton of unnessicary logic if the slider isn't in the correct position
         ret,frame = vid.read() #read from camera
+        
         if(not ret):#prevents throwing an error due to missing or occupied camera
             print("Broke")
             break
@@ -150,16 +138,12 @@ while(cv2.waitKey(1) != 27):
         frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT) # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)#converts from the BGR to HSV colorspace
         
-        colorOne = cv2.inRange(hsv,minColorOne,maxColorOne) # grabs the inRange parts of the images
-        colorTwo = cv2.inRange(hsv,minColorTwo,maxColorTwo)
-        colorThree = cv2.inRange(hsv,minColorThree,maxColorThree)
-        colorFour = cv2.inRange(hsv,minColorFour,maxColorFour)
-
-        cv2.imshow("colorOne",colorOne)
-        cv2.imshow("colorTwo",colorTwo)
-        cv2.imshow("colorThree",colorThree)
-        cv2.imshow("colorFour",colorFour)
-
+        Cali.rawImg = hsv
+        
+        colorOne = cv2.inRange(hsv,Cali.minColorOne,Cali.maxColorOne) # grabs the inRange parts of the images
+        colorTwo = cv2.inRange(hsv,Cali.minColorTwo,Cali.maxColorTwo)
+        colorThree = cv2.inRange(hsv,Cali.minColorThree,Cali.maxColorThree)
+        colorFour = cv2.inRange(hsv,Cali.minColorFour,Cali.maxColorFour)
 
         kernel = numpy.ones((5,5),numpy.uint8)#just a 15x15 grid of ones
 
@@ -222,7 +206,7 @@ while(cv2.waitKey(1) != 27):
         cX4 = file["cX4"][i]
         cY4 = file["cY4"][i]
         ogFrame = numpy.zeros((len(ogFrame),len(ogFrame[0]),3),dtype = numpy.uint8)
-        print(ogFrame)# creates a black background so that it can put the dots on without interference
+        # creates a black background so that it can put the dots on without interference
         cv2.circle(ogFrame,(cX1, cY1),15,(0,0,255),-1)#puts dots in the positions
         cv2.circle(ogFrame,(cX2, cY2),15,(0,255,0),-1)
         cv2.circle(ogFrame,(cX3, cY3),15,(255,0,0),-1)
@@ -231,19 +215,19 @@ while(cv2.waitKey(1) != 27):
         
     complete = 0
     
-    if(cX2 != None and cX1 != None and hide): #draw lines between the corrosponding dots
+    if(cX2 != None and cX1 != None and Cali.hide): #draw lines between the corrosponding dots
         cv2.line(ogFrame,(cX2,cY2),(cX1,cY1),(255,255,255),10)
         complete = complete + 1
         
-    if(cX3 != None and cX4 != None and hide):    
+    if(cX3 != None and cX4 != None and Cali.hide):    
         cv2.line(ogFrame,(cX3,cY3),(cX4,cY4),(255,255,255),10)
         complete = complete + 1
         
-    if(complete == 2 and hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
+    if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
         
-        if(record):# only record if the slider says so
+        if(cv2.getTrackbarPos("Record","UI") == 1):# only record if the slider says so
             
-            dtime.append(math.floor(time()*1000)) # get the current time in millis
+            dtime.append(floor(time()*1000)) # get the current time in millis
         
             dX1.append(cX1)# append the current dot locations to a array so they can be saved
             dY1.append(cY1)
@@ -291,6 +275,9 @@ while(cv2.waitKey(1) != 27):
             cv2.putText(ogFrame,str(outangle) + " degrees",(int(statistics.mean([cX1,int(xi),cX4])),int(statistics.mean([cY1,int(yi),cY4]))),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),3)
             #puts the outangle onto the screen inbetween the three points
     else:
+        if(cv2.getTrackbarPos("Calibrate","UI") == 0):
+            Cali.clickNumber = 0
+            Cali.hide = True
         cv2.setTrackbarPos("Record", "UI",0) # stops recording if one of the points disappears from view
         
     cv2.imshow("LiveFeed",ogFrame)# display frame
@@ -303,7 +290,7 @@ while(cv2.waitKey(1) != 27):
         dPath = path.join("C:","Users",path.expanduser("~"),"Documents","CAPT") # file path
         
         if(not path.exists(dPath)): # detect if a file exists in a specific directory
-           os.makedirs(dPath)   # create said file if it doesn't exist
+           makedirs(dPath)   # create said file if it doesn't exist
         
         saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = dPath)
         #^ allow user to pick the name of the save file and the location to save it defaulting in Documents/CAPT
@@ -314,4 +301,6 @@ while(cv2.waitKey(1) != 27):
                  
 cv2.destroyAllWindows() # delete the windows and free the camera to the user again
 vid.release()
+
+
 
