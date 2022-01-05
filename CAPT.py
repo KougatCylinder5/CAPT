@@ -22,51 +22,126 @@ root.withdraw() # deletes empty Tninter box
 cv2.namedWindow("LiveFeed",cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
-def callback (event,x,y,flags,params): # mousecall back for clicks
-    global state #update global value
-    global maxColorOne #fairly obvious variable names
-    global minColorOne
-    global maxColorTwo
-    global minColorTwo
-    global maxColorThree
-    global minColorThree
-    global maxColorFour
-    global minColorFour
-    global hsv # grabs frame from camera to use in function
-    global hide # tells the program to hide the lines connecting the dots while calibrating
-    
-    if(event == 4):
-        cv2.setTrackbarPos("Calibrate","UI",0)
-    if(params[0] == 1 and flags == 1 and event == 1):
-        if(params[1] == 2):
-            markThree = hsv[y,x]
-            maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
-            minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
+class calibrate
+    def __init__(self):
+        self.maxColorOne = (8,255,255) #defines min and max for each of the colors on default
+        self.minColorOne = (2,130,55)
+        self.maxColorTwo = (90,255,255)
+        self.minColorTwo = (50,100,20)
+        self.maxColorThree = (120,255,255)
+        self.minColorThree = (100,50,0)
+        self.maxColorFour = (29,255,255)
+        self.minColorFour = (13,205,182)   
+        self.clickNumber = 0
+        self.hide = False
+        
+    def startCalibrating(self,rawImg,x,y):
+        
+        if(self.clickNumber == 0):
+            markTwo = rawImg[y,x]
+            self.maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
+            self.minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
+            self.clickNumber = self.clickNumber + 1
             
-        elif(params[1] == 0):
-            markTwo = hsv[y,x]
-            maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
-            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
-
-        elif(params[1] == 1):
-            markOne = hsv[y,x]
-            maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
-            if(markOne[2] - 100 < 55):
-                markOne[2] = 155
-            minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+        elif(self.clickNumber == 1):
+            markOne = rawImg[y,x]
+            self.maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
+            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+            self.clickNumber = self.clickNumber + 1
             
-        elif(params[1] == 3):
+        elif(self.clickNumber == 2):
+            markThree = rawImg[y,x]
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
+            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
+            self.clickNumber = self.clickNumber + 1
+            
+        elif(self.clickNumber == 3):
             markFour = hsv[y,x]
             maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
-            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
+            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])            
+            self.clickNumber = self.clickNumber + 1
             
-        state[1] = params[1] + 1#adds one to the state global so that it sets the next color the next time it is clicked instead of the same one
-        if(state[1] == 4): # I don't even know how this works it just works
-            state = numpy.array([0,0])
-            params[1] = 0
-            params[0] = 0
-            print("complete")
-            hide = True
+        elif(self.clickNumber == 4):
+            self.clickNumber = 0
+            
+        else:
+            raise valueError("calibrate.clickNumber exceded maximum value")
+        
+        
+    @properties
+    
+    def getMaxColorOne(self):
+        return self.maxColorOne
+    def getMinColorOne(self):
+        return self.minColorOne
+    def getMaxColorTwo(self):
+        return self.maxColorTwo
+    def getMinColorTwo(self):
+        return self.minColorTwo
+    def getMaxColorThree(self):
+        return self.maxColorThree
+    def getMinColorThree(self):
+        return self.minColorThree
+    def getMaxColorFour(self):
+        return self.maxColorFour
+    def getMinColorFour(self):
+        return self.minColorFour
+    
+    @calibrate.setter
+    def __setattr__(self,name,value):
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        else:
+            raise valueError("Value doesn't exist in calibrate.__dict__ already")
+            
+def callback (event,x,y,flags,params): # mousecall back for clicks
+    
+    
+    
+#    global state #update global value
+#    global maxColorOne #fairly obvious variable names
+#    global minColorOne
+#    global maxColorTwo
+#    global minColorTwo
+#    global maxColorThree
+#    global minColorThree
+#    global maxColorFour
+#    global minColorFour
+#    global hsv # grabs frame from camera to use in function
+#    global hide # tells the program to hide the lines connecting the dots while calibrating
+#    
+#    if(event == 4):
+#        cv2.setTrackbarPos("Calibrate","UI",0)
+#    if(params[0] == 1 and flags == 1 and event == 1):
+#        if(params[1] == 2):
+#            markThree = hsv[y,x]
+#            maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
+#            minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
+#            
+#        elif(params[1] == 0):
+#            markTwo = hsv[y,x]
+#            maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
+#            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
+#
+#        elif(params[1] == 1):
+#            markOne = hsv[y,x]
+#            maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
+#            if(markOne[2] - 100 < 55):
+#                markOne[2] = 155
+#            minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+#            
+#        elif(params[1] == 3):
+#            markFour = hsv[y,x]
+#            maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
+#            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
+#            
+#        state[1] = params[1] + 1#adds one to the state global so that it sets the next color the next time it is clicked instead of the same one
+#        if(state[1] == 4): # I don't even know how this works it just works
+#            state = numpy.array([0,0])
+#            params[1] = 0
+#            params[0] = 0
+#            print("complete")
+#            hide = True
     
 state = numpy.array([0,0]) #settings for callback functions it does a job that regulates thingies
 cv2.setMouseCallback("LiveFeed",callback,state)
