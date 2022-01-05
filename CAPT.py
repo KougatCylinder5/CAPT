@@ -22,7 +22,8 @@ root.withdraw() # deletes empty Tninter box
 cv2.namedWindow("LiveFeed",cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
-class calibrate
+class calibrate:
+
     def __init__(self):
         self.maxColorOne = (8,255,255) #defines min and max for each of the colors on default
         self.minColorOne = (2,130,55)
@@ -34,41 +35,39 @@ class calibrate
         self.minColorFour = (13,205,182)   
         self.clickNumber = 0
         self.hide = False
+    def startCalibrating(self,x,y):
         
-    def startCalibrating(self,rawImg,x,y):
-        
+        print(self.clickNumber)
         if(self.clickNumber == 0):
-            markTwo = rawImg[y,x]
+            markTwo = self.rawImg[y,x]
             self.maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
             self.minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
             self.clickNumber = self.clickNumber + 1
-            
+            print(self.maxColorTwo)
         elif(self.clickNumber == 1):
-            markOne = rawImg[y,x]
+            markOne = self.rawImg[y,x]
             self.maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
             self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
             self.clickNumber = self.clickNumber + 1
             
         elif(self.clickNumber == 2):
-            markThree = rawImg[y,x]
+            markThree = self.rawImg[y,x]
             self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
             self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
             self.clickNumber = self.clickNumber + 1
             
         elif(self.clickNumber == 3):
-            markFour = hsv[y,x]
-            maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
-            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])            
-            self.clickNumber = self.clickNumber + 1
-            
-        elif(self.clickNumber == 4):
+            markFour = self.rawImg[y,x]
+            self.maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
+            self.minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])            
             self.clickNumber = 0
-            
+            cv2.setTrackbarPos("Calibrate","UI",0)            
+        
         else:
             raise valueError("calibrate.clickNumber exceded maximum value")
         
         
-    @properties
+    #@properties
     
     def getMaxColorOne(self):
         return self.maxColorOne
@@ -87,15 +86,16 @@ class calibrate
     def getMinColorFour(self):
         return self.minColorFour
     
-    @calibrate.setter
+    #@calibrate.setter
     def __setattr__(self,name,value):
-        if name in self.__dict__:
-            self.__dict__[name] = value
-        else:
-            raise valueError("Value doesn't exist in calibrate.__dict__ already")
+        #if name in self.__dict__:
+        self.__dict__[name] = value
+        #else:
+            #raise ValueError("Value doesn't exist in calibrate.__dict__ already")
             
-def callback (event,x,y,flags,params): # mousecall back for clicks
-    
+def callback(event,x,y,flags,params): # mousecall back for clicks
+    if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
+        calibrate().startCalibrating(x,y)    
     
     
 #    global state #update global value
@@ -142,9 +142,9 @@ def callback (event,x,y,flags,params): # mousecall back for clicks
 #            params[0] = 0
 #            print("complete")
 #            hide = True
-    
-state = numpy.array([0,0]) #settings for callback functions it does a job that regulates thingies
-cv2.setMouseCallback("LiveFeed",callback,state)
+
+ #settings for callback functions it does a job that regulates thingies
+
 
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
@@ -153,16 +153,13 @@ vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
 hide = True
+cv2.setMouseCallback("LiveFeed",callback)
 def recalibrate(value): # starts the recalibration sequence to assign points
-    global state
-    global hide
     global angle
     if(value == 1):
         hide = False
         angle = [None] * 5 # resets the angle array for averaging the angle to prevent irregulaties
-        state[0] = 1
-        state[1] = 0
-        cv2.setMouseCallback("LiveFeed",callback,state)
+        cv2.setMouseCallback("LiveFeed",callback)
         print("Choose New Points for color calibration in this order:")
         print("Green, Red, Gold, Blue")
   
@@ -218,6 +215,7 @@ i = 0  # creates blank value for, the for loop for replaying files
 while(cv2.waitKey(1) != 27):
     if(cv2.getTrackbarPos("ReWatch?","UI") == 0):#skips a ton of unnessicary logic if the slider isn't in the correct position
         ret,frame = vid.read() #read from camera
+        
         if(not ret):#prevents throwing an error due to missing or occupied camera
             print("Broke")
             break
@@ -225,10 +223,12 @@ while(cv2.waitKey(1) != 27):
         frame = cv2.blur(frame, (20,20),cv2.BORDER_DEFAULT) # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)#converts from the BGR to HSV colorspace
         
-        colorOne = cv2.inRange(hsv,minColorOne,maxColorOne) # grabs the inRange parts of the images
-        colorTwo = cv2.inRange(hsv,minColorTwo,maxColorTwo)
-        colorThree = cv2.inRange(hsv,minColorThree,maxColorThree)
-        colorFour = cv2.inRange(hsv,minColorFour,maxColorFour)
+        calibrate.rawImg = hsv
+        print(calibrate.getMinColorOne())
+        colorOne = cv2.inRange(hsv,calibrate().getMinColorOne(),calibrate().getMaxColorOne()) # grabs the inRange parts of the images
+        colorTwo = cv2.inRange(hsv,calibrate().getMinColorTwo(),calibrate().getMaxColorTwo())
+        colorThree = cv2.inRange(hsv,calibrate().getMinColorThree(),calibrate().getMaxColorThree())
+        colorFour = cv2.inRange(hsv,calibrate().getMinColorFour(),calibrate().getMaxColorFour())
 
         cv2.imshow("colorOne",colorOne)
         cv2.imshow("colorTwo",colorTwo)
@@ -306,11 +306,11 @@ while(cv2.waitKey(1) != 27):
         
     complete = 0
     
-    if(cX2 != None and cX1 != None and hide): #draw lines between the corrosponding dots
+    if(cX2 != None and cX1 != None and calibrate().hide): #draw lines between the corrosponding dots
         cv2.line(ogFrame,(cX2,cY2),(cX1,cY1),(255,255,255),10)
         complete = complete + 1
         
-    if(cX3 != None and cX4 != None and hide):    
+    if(cX3 != None and cX4 != None and calibrate().hide):    
         cv2.line(ogFrame,(cX3,cY3),(cX4,cY4),(255,255,255),10)
         complete = complete + 1
         
@@ -318,7 +318,7 @@ while(cv2.waitKey(1) != 27):
         
         if(record):# only record if the slider says so
             
-            dtime.append(math.floor(time()*1000)) # get the current time in millis
+            dtime.append(floor(time()*1000)) # get the current time in millis
         
             dX1.append(cX1)# append the current dot locations to a array so they can be saved
             dY1.append(cY1)
