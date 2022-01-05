@@ -66,27 +66,6 @@ class calibrate:
         else:
             raise valueError("calibrate.clickNumber exceded maximum value")
         
-        
-    #@properties
-    
-#     def maxColorOne(self):
-#         return self.maxColorOne
-#     def minColorOne(self):
-#         return self.minColorOne
-#     def maxColorTwo(self):
-#         return self.maxColorTwo
-#     def minColorTwo(self):
-#         return self.minColorTwo
-#     def maxColorThree(self):
-#         return self.maxColorThree
-#     def minColorThree(self):
-#         return self.minColorThree
-#     def maxColorFour(self):
-#         return self.maxColorFour
-#     def minColorFour(self):
-#         return self.minColorFour
-#     
-    #@calibrate.setter
     def __setattr__(self,name,value):
         self.__dict__[name] = value
     def __getattr__(self,name):
@@ -94,14 +73,9 @@ class calibrate:
             
 def callback(event,x,y,flags,params): 
     if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
-        Cali.startCalibrating(x,y)    
-    
-    
-
+        Cali.startCalibrating(x,y)
+   
 vid = cv2.VideoCapture(0)
-print(vid.get(cv2.CAP_PROP_EXPOSURE))
-print(vid.get(cv2.CAP_PROP_GAIN))
-print(vid.get(cv2.CAP_PROP_BRIGHTNESS))
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
 vid.set(cv2.CAP_PROP_GAIN,165)
 vid.set(cv2.CAP_PROP_BRIGHTNESS, 165)
@@ -109,16 +83,7 @@ vid.set(cv2.CAP_PROP_EXPOSURE, 3.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
-hide = True
 cv2.setMouseCallback("LiveFeed",callback)
-def recalibrate(value): # starts the recalibration sequence to assign points
-    global angle
-    if(value == 1):
-        hide = False
-        angle = [None] * 5 # resets the angle array for averaging the angle to prevent irregulaties
-        cv2.setMouseCallback("LiveFeed",callback)
-        print("Choose New Points for color calibration in this order:")
-        print("Green, Red, Gold, Blue")
 
 file = None
 def rewatch(value): # function to determine if to open a .csv file for playback
@@ -127,11 +92,13 @@ def rewatch(value): # function to determine if to open a .csv file for playback
         file_path = filedialog.askopenfilename()
         if(len(file_path) > 0):
             file = pandas.read_csv(file_path)
+            cv2.setTrackbarPos("Record","UI",0)
         else:
             cv2.setTrackbarPos("ReWatch?","UI",0)
+            
 
         
-cv2.createTrackbar("Calibrate","UI",0,1,recalibrate) # creating trackbars for grabbing user input
+cv2.createTrackbar("Calibrate","UI",0,1,lambda x: None) # creating trackbars for grabbing user input
 cv2.createTrackbar("Record","UI",0,1,lambda x: None)
 cv2.createTrackbar("Save?","UI",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","UI",0,1,rewatch)
@@ -153,6 +120,14 @@ Cali = calibrate()
 i = 0  # creates blank value for, the for loop for replaying files
 
 while(cv2.waitKey(1) != 27):
+    
+    if(cv2.getTrackbarPos("Calibrate","UI") == 1 and Cali.hide):
+        angle = [None] * 5 # resets the angle array for averaging the angle to prevent irregulaties
+
+        print("Choose New Points for color calibration in this order:")
+        print("Green, Red, Gold, Blue")
+        Cali.hide = False
+    
     if(cv2.getTrackbarPos("ReWatch?","UI") == 0):#skips a ton of unnessicary logic if the slider isn't in the correct position
         ret,frame = vid.read() #read from camera
         
@@ -248,7 +223,7 @@ while(cv2.waitKey(1) != 27):
         cv2.line(ogFrame,(cX3,cY3),(cX4,cY4),(255,255,255),10)
         complete = complete + 1
         
-    if(complete == 2 and hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
+    if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
         
         if(cv2.getTrackbarPos("Record","UI") == 1):# only record if the slider says so
             
@@ -302,6 +277,7 @@ while(cv2.waitKey(1) != 27):
     else:
         if(cv2.getTrackbarPos("Calibrate","UI") == 0):
             Cali.clickNumber = 0
+            Cali.hide = True
         cv2.setTrackbarPos("Record", "UI",0) # stops recording if one of the points disappears from view
         
     cv2.imshow("LiveFeed",ogFrame)# display frame
@@ -314,7 +290,7 @@ while(cv2.waitKey(1) != 27):
         dPath = path.join("C:","Users",path.expanduser("~"),"Documents","CAPT") # file path
         
         if(not path.exists(dPath)): # detect if a file exists in a specific directory
-           os.makedirs(dPath)   # create said file if it doesn't exist
+           makedirs(dPath)   # create said file if it doesn't exist
         
         saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = dPath)
         #^ allow user to pick the name of the save file and the location to save it defaulting in Documents/CAPT
@@ -325,5 +301,6 @@ while(cv2.waitKey(1) != 27):
                  
 cv2.destroyAllWindows() # delete the windows and free the camera to the user again
 vid.release()
+
 
 
