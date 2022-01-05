@@ -5,10 +5,10 @@ import pandas # CSV manipulation library
 import numpy
 import sys
 import subprocess
-import os
+from os import makedirs
 import os.path as path # directory library
 import statistics
-import math
+from math import floor
 from time import time
 import tkinter as tk # file manipulation/selection library
 from tkinter import filedialog
