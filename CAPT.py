@@ -88,63 +88,15 @@ class calibrate:
     
     #@calibrate.setter
     def __setattr__(self,name,value):
-        #if name in self.__dict__:
         self.__dict__[name] = value
-        #else:
-            #raise ValueError("Value doesn't exist in calibrate.__dict__ already")
+    def __getattr__(self,name):
+        return self.__dict___[name]
             
-def callback(event,x,y,flags,params): # mousecall back for clicks
+def callback(event,x,y,flags,params): 
     if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
         calibrate().startCalibrating(x,y)    
     
     
-#    global state #update global value
-#    global maxColorOne #fairly obvious variable names
-#    global minColorOne
-#    global maxColorTwo
-#    global minColorTwo
-#    global maxColorThree
-#    global minColorThree
-#    global maxColorFour
-#    global minColorFour
-#    global hsv # grabs frame from camera to use in function
-#    global hide # tells the program to hide the lines connecting the dots while calibrating
-#    
-#    if(event == 4):
-#        cv2.setTrackbarPos("Calibrate","UI",0)
-#    if(params[0] == 1 and flags == 1 and event == 1):
-#        if(params[1] == 2):
-#            markThree = hsv[y,x]
-#            maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10]) # defines upper and lower limit
-#            minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
-#            
-#        elif(params[1] == 0):
-#            markTwo = hsv[y,x]
-#            maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
-#            minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
-#
-#        elif(params[1] == 1):
-#            markOne = hsv[y,x]
-#            maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
-#            if(markOne[2] - 100 < 55):
-#                markOne[2] = 155
-#            minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
-#            
-#        elif(params[1] == 3):
-#            markFour = hsv[y,x]
-#            maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
-#            minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
-#            
-#        state[1] = params[1] + 1#adds one to the state global so that it sets the next color the next time it is clicked instead of the same one
-#        if(state[1] == 4): # I don't even know how this works it just works
-#            state = numpy.array([0,0])
-#            params[1] = 0
-#            params[0] = 0
-#            print("complete")
-#            hide = True
-
- #settings for callback functions it does a job that regulates thingies
-
 
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
@@ -225,10 +177,10 @@ while(cv2.waitKey(1) != 27):
         
         calibrate.rawImg = hsv
         print(calibrate.getMinColorOne())
-        colorOne = cv2.inRange(hsv,calibrate().getMinColorOne(),calibrate().getMaxColorOne()) # grabs the inRange parts of the images
-        colorTwo = cv2.inRange(hsv,calibrate().getMinColorTwo(),calibrate().getMaxColorTwo())
-        colorThree = cv2.inRange(hsv,calibrate().getMinColorThree(),calibrate().getMaxColorThree())
-        colorFour = cv2.inRange(hsv,calibrate().getMinColorFour(),calibrate().getMaxColorFour())
+        colorOne = cv2.inRange(hsv,calibrate.getMinColorOne(),calibrate.getMaxColorOne()) # grabs the inRange parts of the images
+        colorTwo = cv2.inRange(hsv,calibrate.getMinColorTwo(),calibrate.getMaxColorTwo())
+        colorThree = cv2.inRange(hsv,calibrate.getMinColorThree(),calibrate.getMaxColorThree())
+        colorFour = cv2.inRange(hsv,calibrate.getMinColorFour(),calibrate.getMaxColorFour())
 
         cv2.imshow("colorOne",colorOne)
         cv2.imshow("colorTwo",colorTwo)
