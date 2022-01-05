@@ -17,14 +17,22 @@ import cv2
 root = tk.Tk()
 root.withdraw() # deletes empty Tninter box
 
-
+vid = cv2.VideoCapture(0)
+vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
+vid.set(cv2.CAP_PROP_GAIN,165)
+vid.set(cv2.CAP_PROP_BRIGHTNESS, 165)
+vid.set(cv2.CAP_PROP_EXPOSURE, 3.0)     # camera default modifications
+vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
+vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
 cv2.namedWindow("LiveFeed",cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
+#
+
 class calibrate:
 
-    def __init__(self):
+    def __init__(self): # runs on creating the instance of each class
         self.maxColorOne = (8,255,255) #defines min and max for each of the colors on default
         self.minColorOne = (2,130,55)
         self.maxColorTwo = (90,255,255)
@@ -35,7 +43,7 @@ class calibrate:
         self.minColorFour = (13,205,182)   
         self.clickNumber = 0
         self.hide = True
-    def startCalibrating(self,x,y):
+    def startCalibrating(self,x,y): #called when 
         
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y,x]
@@ -71,17 +79,12 @@ class calibrate:
     def __getattr__(self,name):
         return self.__dict___[name]
             
+            
+            
+
 def callback(event,x,y,flags,params): 
     if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
         Cali.startCalibrating(x,y)
-   
-vid = cv2.VideoCapture(0)
-vid.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.25)
-vid.set(cv2.CAP_PROP_GAIN,165)
-vid.set(cv2.CAP_PROP_BRIGHTNESS, 165)
-vid.set(cv2.CAP_PROP_EXPOSURE, 3.0)     # camera default modifications
-vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
-vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
 cv2.setMouseCallback("LiveFeed",callback)
 
@@ -103,19 +106,42 @@ cv2.createTrackbar("Record","UI",0,1,lambda x: None)
 cv2.createTrackbar("Save?","UI",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","UI",0,1,rewatch)
 
-dtime = [] # array to store the length of each frame for playback
-dX1 = []# blank arrays for recording values for each of the points
-dY1 = []
-dX2 = []
-dY2 = []
-dX3 = []
-dY3 = []
-dX4 = []
-dY4 = []
-
+class recording:
+    
+    def __init__(self):
+        self.dtime = [] # array to store the length of each frame for playback
+        self.dX1 = []# blank arrays for recording values for each of the points
+        self.dY1 = []
+        self.dX2 = []
+        self.dY2 = []
+        self.dX3 = []
+        self.dY3 = []
+        self.dX4 = []
+        self.dY4 = []
+        self.started = False
+        
+    def append(self,X1,Y1,X2,Y2,X3,Y3,X4,Y4,time):
+        self.dtime.append(time)
+        self.dX1.append(X1)
+        self.dY1.append(Y1)
+        self.dX2.append(X2)
+        self.dY2.append(Y2)
+        self.dX3.append(X3)
+        self.dY3.append(Y3)
+        self.dX4.append(X4)
+        self.dY4.append(Y4)
+        
+    def __setattr__(self,name,value):
+        self.__dict__[name] = value
+    def __getattr__(self,name):
+        return self.__dict___[name]
+    
+    
 angle = [None] * 5 # empty array for averaging the degrees
 
 Cali = calibrate()
+
+record = recording()
 
 i = 0  # creates blank value for, the for loop for replaying files
 
@@ -128,7 +154,7 @@ while(cv2.waitKey(1) != 27):
         print("Green, Red, Gold, Blue")
         Cali.hide = False
     
-    if(cv2.getTrackbarPos("ReWatch?","UI") == 0):#skips a ton of unnessicary logic if the slider isn't in the correct position
+    if(cv2.getTrackbarPos("ReWatch?","UI") == 0 and type(vid) != None):#skips a ton of unnessicary logic if the slider isn't in the correct position
         ret,frame = vid.read() #read from camera
         
         if(not ret):#prevents throwing an error due to missing or occupied camera
@@ -189,6 +215,8 @@ while(cv2.waitKey(1) != 27):
 
        
     elif(cv2.getTrackbarPos("ReWatch?","UI") == 1): # math to jump straight to here if its replaying a recording
+        if(type(vid) == None):
+            print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
         length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
         if(i > length - 3):#prior said stopper
             i = 0
@@ -226,17 +254,8 @@ while(cv2.waitKey(1) != 27):
     if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4): #only allow angle calculations if it can see all the color positions
         
         if(cv2.getTrackbarPos("Record","UI") == 1):# only record if the slider says so
-            
-            dtime.append(floor(time()*1000)) # get the current time in millis
-        
-            dX1.append(cX1)# append the current dot locations to a array so they can be saved
-            dY1.append(cY1)
-            dX2.append(cX2)
-            dY2.append(cY2)
-            dX3.append(cX3)
-            dY3.append(cY3)
-            dX4.append(cX4)
-            dY4.append(cY4)
+             # get the current time in millis
+            record.append(cX1,cY1,cX2,cY2,cX3,cY3,cX4,cY4,floor(time()*1000))
                
         m1 = (cY1-cY2)/(cX1-cX2)# calculate slope so we can determine where the lines intercept
         m2 = (cY3-cY4)/(cX3-cX4)
@@ -283,7 +302,7 @@ while(cv2.waitKey(1) != 27):
     cv2.imshow("LiveFeed",ogFrame)# display frame
     
     if(cv2.getTrackbarPos("Save?","UI") == 1): # if the user says to save this if statement compiles all the variables into a dicationary
-        db = {"time" : dtime, "cX1" : dX1, "cY1" : dY1, "cX2" : dX2, "cY2" : dY2, "cX3" : dX3, "cY3" : dY3, "cX4" : dX4, "cY4" : dY4} # dictionary of values and each value is an array
+        db = {"time" : record.dtime, "cX1" : record.dX1, "cY1" : record.dY1, "cX2" : record.dX2, "cY2" : record.dY2, "cX3" : record.dX3, "cY3" : record.dY3, "cX4" : record.dX4, "cY4" : record.dY4} # dictionary of values and each value is an array
         columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")#headers for the .csv file
         df = pandas.DataFrame(data = db)# create a data frame with the data equal to db
         
@@ -298,7 +317,8 @@ while(cv2.waitKey(1) != 27):
         if(len(saveLocation) != 0): #check validity of the assigned save location, if cancel was clicked instead with will not run
             df.to_csv(saveLocation)
         cv2.setTrackbarPos("Save?","UI",0) # reset the trackbar asking if you want to save the recording to exit the loop
-                 
+        
+        
 cv2.destroyAllWindows() # delete the windows and free the camera to the user again
 vid.release()
 
