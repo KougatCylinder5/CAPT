@@ -19,14 +19,13 @@ root.withdraw()  # deletes empty Tninter box
 
 vid = cv2.VideoCapture(0)
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
-vid.set(cv2.CAP_PROP_GAIN, 165)
-vid.set(cv2.CAP_PROP_BRIGHTNESS, 165)
-vid.set(cv2.CAP_PROP_EXPOSURE, 3.0)     # camera default modifications
+vid.set(cv2.CAP_PROP_GAIN, 95)
+vid.set(cv2.CAP_PROP_BRIGHTNESS, 85)
+vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
-cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
-cv2.namedWindow("UI")
+
 
 
 class recording:  # stores all the recording related information
@@ -73,6 +72,7 @@ class calibrate:
         self.minColorFour = (13, 205, 182)
         self.clickNumber = 0
         self.hide = True
+        self._internalCounterOld = time()
     # called when calibrating color detection
 
     def startCalibrating(self, x, y):
@@ -106,19 +106,25 @@ class calibrate:
         else:
             raise valueError("calibrate.clickNumber exceded maximum value")
 
+    def autoCalibrate(self, cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4):
+        listX = [cX2, cX1, cX3, cX4]
+        listY = [cY2, cY1, cY3, cY4]
+        print(time() - 0.2)
+        print(self._internalCounterOld)
+        if(self._internalCounterOld < time() - 0.2):
+            i = 0
+            while(i < 3):
+                print("test")
+                Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
+                i = i + 1
+            self._internalCounterOld = time()
     def __setattr__(self, name, value):
         self.__dict__[name] = value
 
-    def __getattr__(self, name):
-        return self.__dict___[name]
+    #def __getattr__(self, name):
+        #return self.__dict___[name]
 
 
-def callback(event, x, y, flags, params):
-
-    if(event == 1 and cv2.getTrackbarPos("Calibrate", "UI") == 1):
-        Cali.startCalibrating(x, y)
-
-cv2.setMouseCallback("LiveFeed", callback)
 
 file = None
 
@@ -133,10 +139,23 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
 
+cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
+cv2.namedWindow("UI")
+
+cv2.imshow("UI",numpy.ones((50,200),dtype = numpy.uint8))
+
 cv2.createTrackbar("Calibrate", "UI", 0, 1, lambda x: None)  # creating trackbars for grabbing user input
 cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Save?", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
+cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
+
+def callback(event, x, y, flags, params):
+
+    if(event == 1 and cv2.getTrackbarPos("Calibrate", "UI") == 1):
+        Cali.startCalibrating(x, y)
+
+cv2.setMouseCallback("LiveFeed", callback)
 
 
 angle = [None] * 5  # empty array for averaging the degrees
@@ -148,7 +167,7 @@ record = recording()
 i = 0  # creates blank value for, the for loop for replaying files
 
 while(cv2.waitKey(1) != 27):
-
+    
     if(cv2.getTrackbarPos("Calibrate", "UI") == 1 and Cali.hide):
         angle = [None] * 5  # resets the angle array for averaging the angle to prevent irregulaties
 
@@ -248,7 +267,7 @@ while(cv2.waitKey(1) != 27):
         cv2.line(ogFrame, (cX2, cY2), (cX1, cY1), (255, 255, 255), 10)
         complete = complete + 1
 
-    if(cX3is not None and cX4 is not None and Cali.hide):
+    if(cX3 is not None and cX4 is not None and Cali.hide):
         cv2.line(ogFrame, (cX3, cY3), (cX4, cY4), (255, 255, 255), 10)
         complete = complete + 1
 
@@ -257,7 +276,11 @@ while(cv2.waitKey(1) != 27):
         if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
             # get the current time in millis
             record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, floor(time()*1000))
-
+        if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
+            
+            Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
+            print("called")
+        
         m1 = (cY1-cY2)/(cX1-cX2)  # calculate slope so we can determine where the lines intercept
         m2 = (cY3-cY4)/(cX3-cX4)
         b1 = cY1 - m1 * cX1  # calculated the y-intercept for each line
@@ -284,7 +307,7 @@ while(cv2.waitKey(1) != 27):
             angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
 
         # I grab angle[2] as thats the inside angle and its always that angle
-        print(int(str(round(angles[2], 0))[:-2]))
+        print(str(round(angles[2], 0))[:-2])
         angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
         del angle[0]  # deletes the first of my averaging array
