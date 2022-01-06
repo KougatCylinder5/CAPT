@@ -28,8 +28,36 @@ vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 cv2.namedWindow("LiveFeed",cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
-#
-
+class recording: # stores all the recording related information
+    
+    def __init__(self):
+        self.dtime = [] # array to store the length of each frame for playback
+        self.dX1 = []# blank arrays for recording values for each of the points
+        self.dY1 = []
+        self.dX2 = []
+        self.dY2 = []
+        self.dX3 = []
+        self.dY3 = []
+        self.dX4 = []
+        self.dY4 = []
+        self.started = False
+        
+    def append(self,X1,Y1,X2,Y2,X3,Y3,X4,Y4,time):
+        self.dtime.append(time)
+        self.dX1.append(X1)
+        self.dY1.append(Y1)
+        self.dX2.append(X2)
+        self.dY2.append(Y2)
+        self.dX3.append(X3)
+        self.dY3.append(Y3)
+        self.dX4.append(X4)
+        self.dY4.append(Y4)
+        
+    def __setattr__(self,name,value):
+        self.__dict__[name] = value
+    def __getattr__(self,name):
+        return self.__dict___[name]
+    
 class calibrate:
 
     def __init__(self): # runs on creating the instance of each class
@@ -78,9 +106,6 @@ class calibrate:
         self.__dict__[name] = value
     def __getattr__(self,name):
         return self.__dict___[name]
-            
-            
-            
 
 def callback(event,x,y,flags,params): 
     if(event == 1 and cv2.getTrackbarPos("Calibrate","UI") == 1):
@@ -99,44 +124,12 @@ def rewatch(value): # function to determine if to open a .csv file for playback
         else:
             cv2.setTrackbarPos("ReWatch?","UI",0)
             
-
-        
 cv2.createTrackbar("Calibrate","UI",0,1,lambda x: None) # creating trackbars for grabbing user input
 cv2.createTrackbar("Record","UI",0,1,lambda x: None)
 cv2.createTrackbar("Save?","UI",0,1,lambda x: None)
 cv2.createTrackbar("ReWatch?","UI",0,1,rewatch)
 
-class recording:
-    
-    def __init__(self):
-        self.dtime = [] # array to store the length of each frame for playback
-        self.dX1 = []# blank arrays for recording values for each of the points
-        self.dY1 = []
-        self.dX2 = []
-        self.dY2 = []
-        self.dX3 = []
-        self.dY3 = []
-        self.dX4 = []
-        self.dY4 = []
-        self.started = False
-        
-    def append(self,X1,Y1,X2,Y2,X3,Y3,X4,Y4,time):
-        self.dtime.append(time)
-        self.dX1.append(X1)
-        self.dY1.append(Y1)
-        self.dX2.append(X2)
-        self.dY2.append(Y2)
-        self.dX3.append(X3)
-        self.dY3.append(Y3)
-        self.dX4.append(X4)
-        self.dY4.append(Y4)
-        
-    def __setattr__(self,name,value):
-        self.__dict__[name] = value
-    def __getattr__(self,name):
-        return self.__dict___[name]
-    
-    
+
 angle = [None] * 5 # empty array for averaging the degrees
 
 Cali = calibrate()
@@ -284,7 +277,7 @@ while(cv2.waitKey(1) != 27):
             angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
         
         #I grab angle[2] as thats the inside angle and its always that angle
-
+        print(int(str(round(angles[2],0))[:-2]))
         angle.append(int(str(round(angles[2],0))[:-2]))#the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
    
         del angle[0]# deletes the first of my averaging array 
@@ -299,9 +292,10 @@ while(cv2.waitKey(1) != 27):
             Cali.hide = True
         cv2.setTrackbarPos("Record", "UI",0) # stops recording if one of the points disappears from view
         
+        
     cv2.imshow("LiveFeed",ogFrame)# display frame
     
-    if(cv2.getTrackbarPos("Save?","UI") == 1): # if the user says to save this if statement compiles all the variables into a dicationary
+    if(cv2.getTrackbarPos("Save?","UI") == 1 and len(record.dtime) > 0 ): # if the user says to save this if statement compiles all the variables into a dicationary
         db = {"time" : record.dtime, "cX1" : record.dX1, "cY1" : record.dY1, "cX2" : record.dX2, "cY2" : record.dY2, "cX3" : record.dX3, "cY3" : record.dY3, "cX4" : record.dX4, "cY4" : record.dY4} # dictionary of values and each value is an array
         columns = ("time", "cX1","cY1","cX2","cY2","cX3","cY3","cX4","cY4")#headers for the .csv file
         df = pandas.DataFrame(data = db)# create a data frame with the data equal to db
@@ -311,11 +305,12 @@ while(cv2.waitKey(1) != 27):
         if(not path.exists(dPath)): # detect if a file exists in a specific directory
            makedirs(dPath)   # create said file if it doesn't exist
         
-        saveLocation = filedialog.asksaveasfilename(filetype = [("CSV Files [*.csv]","*.csv")], initialdir = dPath)
+        saveLocation = filedialog.asksaveasfilename(filetype = [("All Files","*")], initialdir = dPath)
         #^ allow user to pick the name of the save file and the location to save it defaulting in Documents/CAPT
         
         if(len(saveLocation) != 0): #check validity of the assigned save location, if cancel was clicked instead with will not run
             df.to_csv(saveLocation)
+            record = recording()
         cv2.setTrackbarPos("Save?","UI",0) # reset the trackbar asking if you want to save the recording to exit the loop
         
         
