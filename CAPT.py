@@ -41,7 +41,6 @@ class recording:  # stores all the recording related information
         self.dY3 = []
         self.dX4 = []
         self.dY4 = []
-        self.started = False
 
     def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time):
         self.dtime.append(time)
