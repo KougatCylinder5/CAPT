@@ -9,6 +9,8 @@ from os import makedirs
 import os.path as path  # directory library
 import statistics
 from math import floor
+from math import tan
+from math import atan
 from time import time
 import tkinter as tk  # file manipulation/selection library
 from tkinter import filedialog
@@ -25,9 +27,18 @@ vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
-
-
-
+class targeting:
+    
+    def __inti__(self, angle):
+        self.targetSlope = tan(angle)
+        
+    def Target(self, info1):  # slope is the line current slope of the angle, (x,y) is the starting location to draw the line 
+        slope, b, x, y = info1
+        slopeAngle = atan(slope)
+        targetAngle = slopeAngle + self.targetSlope
+        print(tan(targetAngle))
+        
+        
 class recording:  # stores all the recording related information
 
     def __init__(self):
@@ -51,12 +62,6 @@ class recording:  # stores all the recording related information
         self.dY3.append(Y3)
         self.dX4.append(X4)
         self.dY4.append(Y4)
-
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-    def __getattr__(self, name):
-        return self.__dict___[name]
 
 
 class calibrate:
@@ -118,12 +123,6 @@ class calibrate:
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
                 i = i + 1
             self._internalCounterOld = time()
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-    #def __getattr__(self, name):
-        #return self.__dict___[name]
-
 
 
 file = None
@@ -139,6 +138,15 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
 
+            
+def tripTarget(value):
+    global target
+    if(value != 0):
+        target = targeting(value)
+    else:
+        target = None
+    
+    
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
@@ -149,6 +157,8 @@ cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Save?", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
 cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
+cv2.createTrackbar("Target Ang", "UI",0,180, tripTarget)
+
 
 def callback(event, x, y, flags, params):
 
@@ -163,6 +173,8 @@ angle = [None] * 5  # empty array for averaging the degrees
 Cali = calibrate()
 
 record = recording()
+
+target = None
 
 i = 0  # creates blank value for, the for loop for replaying files
 
@@ -316,6 +328,10 @@ while(cv2.waitKey(1) != 27):
             outangle = round(statistics.mean(angle))  # take the average number of the whole array
             cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
             # puts the outangle onto the screen inbetween the three points
+         
+        if(target is not None):
+            target.Target((m1, b1, xi, yi),)
+            
     else:
         if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
             Cali.clickNumber = 0
