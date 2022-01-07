@@ -8,7 +8,7 @@ import subprocess
 from os import makedirs
 import os.path as path  # directory library
 import statistics
-from math import floor
+import math
 from time import time
 import tkinter as tk  # file manipulation/selection library
 from tkinter import filedialog
@@ -25,7 +25,16 @@ vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
 
-
+class targeting:
+    
+    def __init__(self,angle):
+        self.targetRadians = angle * math.pi/180
+        
+    def Target(self,info):
+        slope, x, y = info
+        slopeR = slope * math.pi/180
+        addedSlope = math.tan(slopeR) + math.tan(self.targetRadians)
+        yInter = addedSlope * x - y
 
 
 class recording:  # stores all the recording related information
@@ -52,12 +61,6 @@ class recording:  # stores all the recording related information
         self.dX4.append(X4)
         self.dY4.append(Y4)
 
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-    def __getattr__(self, name):
-        return self.__dict___[name]
-
 
 class calibrate:
 
@@ -65,11 +68,11 @@ class calibrate:
         self.maxColorOne = (8, 255, 255)  # defines min and max for each of the colors on default
         self.minColorOne = (2, 130, 55)
         self.maxColorTwo = (90, 255, 255)
-        self.minColorTwo = (50, 100, 20)
-        self.maxColorThree = (120, 255, 255)
+        self.minColorTwo = (50, 100, 30)
+        self.maxColorThree = (130, 255, 255)
         self.minColorThree = (100, 50, 0)
         self.maxColorFour = (29, 255, 255)
-        self.minColorFour = (13, 205, 182)
+        self.minColorFour = (13, 305, 182)
         self.clickNumber = 0
         self.hide = True
         self._internalCounterOld = time()
@@ -79,26 +82,26 @@ class calibrate:
 
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
-            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 20, markTwo[2] + 20])
-            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 20, markTwo[2] - 20])
+            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 30, markTwo[2] + 30])
+            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 30, markTwo[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 1):
             markOne = self.rawImg[y, x]
-            self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] - 20, markOne[2] - 20])
-            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 20, markOne[2] - 20])
+            self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] + 30, markOne[2] + 30])
+            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 30, markOne[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 2):
             markThree = self.rawImg[y, x]
-            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 20])  # defines upper and lower limit
-            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 20])
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 30])  # defines upper and lower limit
+            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 30, markThree[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 3):
             markFour = self.rawImg[y, x]
-            self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] - 20, markFour[2] - 20])
-            self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 20, markFour[2] - 20])
+            self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] + 30, markFour[2] + 30])
+            self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 30, markFour[2] - 30])
             self.clickNumber = 0
             self.hide = True
             cv2.setTrackbarPos("Calibrate", "UI", 0)
@@ -109,21 +112,14 @@ class calibrate:
     def autoCalibrate(self, cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4):
         listX = [cX2, cX1, cX3, cX4]
         listY = [cY2, cY1, cY3, cY4]
-        print(time() - 0.2)
         print(self._internalCounterOld)
-        if(self._internalCounterOld < time() - 0.5):
+        if(self._internalCounterOld < time() - 0.2):
             i = 0
             while(i < 3):
                 print("test")
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
                 i = i + 1
             self._internalCounterOld = time()
-    def __setattr__(self, name, value):
-        self.__dict__[name] = value
-
-    #def __getattr__(self, name):
-        #return self.__dict___[name]
-
 
 
 file = None
@@ -142,7 +138,7 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
-cv2.imshow("UI",numpy.ones((50,200),dtype = numpy.uint8))
+cv2.imshow("UI",numpy.ones((50,300),dtype = numpy.uint8))
 
 cv2.createTrackbar("Calibrate", "UI", 0, 1, lambda x: None)  # creating trackbars for grabbing user input
 cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
@@ -182,7 +178,7 @@ while(cv2.waitKey(1) != 27):
             print("Broke")
             break
         ogFrame = frame.copy()  # duplicates the frame for overlay purposes
-        frame = cv2.blur(frame, (20, 20), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
+        frame = cv2.blur(frame, (30, 30), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # converts from the BGR to HSV colorspace
 
         Cali.rawImg = hsv
@@ -275,11 +271,13 @@ while(cv2.waitKey(1) != 27):
 
         if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
             # get the current time in millis
-            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, floor(time()*1000))
+            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000))
         if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
             
             Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
-            print("called")
+            
+        elif(cv2.getTrackbarPos("Calibrate", "UI") == 0):
+            Cali.clickNumber = 0
         
         m1 = (cY1-cY2)/(cX1-cX2)  # calculate slope so we can determine where the lines intercept
         m2 = (cY3-cY4)/(cX3-cX4)
@@ -307,7 +305,6 @@ while(cv2.waitKey(1) != 27):
             angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
 
         # I grab angle[2] as thats the inside angle and its always that angle
-        print(str(round(angles[2], 0))[:-2])
         angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
         del angle[0]  # deletes the first of my averaging array
