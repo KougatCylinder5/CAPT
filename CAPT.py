@@ -33,9 +33,14 @@ class targeting:
     def Target(self,info):
         slope, x, y = info
         slopeR = slope * math.pi/180
-        addedSlope = math.tan(slopeR) + math.tan(self.targetRadians)
-        yInter = addedSlope * x - y
 
+        
+        addedSlope = math.tan(slopeR) + math.tan(self.targetRadians)
+        
+        yInter = addedSlope * -x - y
+        return((500,int(addedSlope * x - y) + 500))
+
+        
 
 class recording:  # stores all the recording related information
 
@@ -76,6 +81,7 @@ class calibrate:
         self.clickNumber = 0
         self.hide = True
         self._internalCounterOld = time()
+        self.rawImg = None
     # called when calibrating color detection
 
     def startCalibrating(self, x, y):
@@ -107,7 +113,7 @@ class calibrate:
             cv2.setTrackbarPos("Calibrate", "UI", 0)
 
         else:
-            raise valueError("calibrate.clickNumber exceded maximum value")
+            raise ValueError("calibrate.clickNumber exceded maximum value")
 
     def autoCalibrate(self, cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4):
         listX = [cX2, cX1, cX3, cX4]
@@ -135,6 +141,14 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
 
+def brightness(value):
+    vid.set(cv2.CAP_PROP_BRIGHTNESS, value)
+def gain(value):
+    vid.set(cv2.CAP_PROP_GAIN, value)
+def exposure(value):
+    vid.set(cv2.CAP_PROP_EXPOSURE, value - 20)
+
+
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
 
@@ -145,6 +159,10 @@ cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Save?", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
 cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
+cv2.createTrackbar("Brightness", "UI",0, 200, brightness)
+cv2.createTrackbar("Gain", "UI",0, 200, gain)
+cv2.createTrackbar("Exposure", "UI", 0, 20, exposure)
+
 
 def callback(event, x, y, flags, params):
 
@@ -159,6 +177,8 @@ angle = [None] * 5  # empty array for averaging the degrees
 Cali = calibrate()
 
 record = recording()
+
+target = targeting(45)
 
 i = 0  # creates blank value for, the for loop for replaying files
 
@@ -284,15 +304,17 @@ while(cv2.waitKey(1) != 27):
         b1 = cY1 - m1 * cX1  # calculated the y-intercept for each line
         b2 = cY3 - m2 * cX3
         if(m1 != m2):  # if the lines are parralell stop to prevent an division by zero error
-            xi = (b1 - b2) / (m2 - m1)
-            yi = m1 * xi + b1
+            xi = int((b1 - b2) / (m2 - m1))
+            yi = int(m1 * xi + b1)
 
-            cv2.circle(ogFrame, (int(xi), int(yi)), 15, (150, 150, 150), -1)  # put a circle on the intercept location
+            cv2.circle(ogFrame, (xi, yi), 15, (150, 150, 150), -1)  # put a circle on the intercept location
 
         # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to https://stackoverflow.com/a/28530929 by Jason S
 
         points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
 
+        
+        
         A = points[2] - points[0]
         B = points[1] - points[0]
         C = points[2] - points[1]
@@ -303,8 +325,11 @@ while(cv2.waitKey(1) != 27):
             num = numpy.dot(e1, e2)
             denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
             angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
-
+        
+        
+        
         # I grab angle[2] as thats the inside angle and its always that angle
+        print(str(round(angles[2], 0))[:-2])
         angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
         del angle[0]  # deletes the first of my averaging array
@@ -313,6 +338,10 @@ while(cv2.waitKey(1) != 27):
             outangle = round(statistics.mean(angle))  # take the average number of the whole array
             cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
             # puts the outangle onto the screen inbetween the three points
+        center = target.Target((m1,xi,yi))
+        print(center)
+        cv2.circle(ogFrame,center,15,(0,0,0),-1)
+        cv2.line(ogFrame,center,(xi,yi),(0,0,0),10)
     else:
         if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
             Cali.clickNumber = 0
@@ -348,3 +377,4 @@ while(cv2.waitKey(1) != 27):
 cv2.destroyAllWindows()
 # delete the windows and free the camera to the user again
 vid.release()
+
