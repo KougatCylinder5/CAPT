@@ -79,26 +79,26 @@ class calibrate:
 
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
-            self.maxColorTwo = numpy.array([markTwo[0] + 5, markTwo[1] + 20, markTwo[2] + 20])
-            self.minColorTwo = numpy.array([markTwo[0] - 5, markTwo[1] - 20, markTwo[2] - 20])
+            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 20, markTwo[2] + 20])
+            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 20, markTwo[2] - 20])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 1):
             markOne = self.rawImg[y, x]
-            self.maxColorOne = numpy.array([markOne[0] + 3, 255, 255])
-            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 100, markOne[2] - 50])
+            self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] - 20, markOne[2] - 20])
+            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 20, markOne[2] - 20])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 2):
             markThree = self.rawImg[y, x]
-            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 10])  # defines upper and lower limit
-            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 10])
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 20, markThree[2] + 20])  # defines upper and lower limit
+            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 20, markThree[2] - 20])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 3):
             markFour = self.rawImg[y, x]
-            self.maxColorFour = numpy.array([markFour[0] + 8, 255, 255])
-            self.minColorFour = numpy.array([markFour[0] - 8, markFour[1] - 50, markFour[2] - 20])
+            self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] - 20, markFour[2] - 20])
+            self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 20, markFour[2] - 20])
             self.clickNumber = 0
             self.hide = True
             cv2.setTrackbarPos("Calibrate", "UI", 0)
@@ -111,7 +111,7 @@ class calibrate:
         listY = [cY2, cY1, cY3, cY4]
         print(time() - 0.2)
         print(self._internalCounterOld)
-        if(self._internalCounterOld < time() - 0.2):
+        if(self._internalCounterOld < time() - 0.5):
             i = 0
             while(i < 3):
                 print("test")
