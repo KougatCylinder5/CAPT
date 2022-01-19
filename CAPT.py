@@ -31,12 +31,15 @@ class targeting:
         self.targetRadians = angle * math.pi/180
         
     def Target(self,info):
-        slope, x, y = info
+        slope, x, y, orientation = info
         slopeD = math.atan(slope) * 180/math.pi
         combinedD = slopeD + (self.targetRadians * 180/math.pi)
         print(round(x + (-300 * math.cos(combinedD * math.pi/180))),round( y + (-300 * math.sin(combinedD * math.pi/180))))
-        return(round(x + (-300 * math.cos(combinedD * math.pi/180))),round( y + (-300 * math.sin(combinedD * math.pi/180))))
-        #Areturn(addedR,0)
+        if(orientation == 1):
+            return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))
+        elif(orientation == 0):
+            return(round(x + (-400 * math.cos((combinedD + 90) * math.pi/180))),round( y + (-400 * math.sin((combinedD + 90) * math.pi/180))))
+        Areturn(addedR,0)
 
 class recording:  # stores all the recording related information
 
@@ -50,8 +53,9 @@ class recording:  # stores all the recording related information
         self.dY3 = []
         self.dX4 = []
         self.dY4 = []
+        self.center = []
 
-    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time):
+    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, center):
         self.dtime.append(time)
         self.dX1.append(X1)
         self.dY1.append(Y1)
@@ -61,6 +65,7 @@ class recording:  # stores all the recording related information
         self.dY3.append(Y3)
         self.dX4.append(X4)
         self.dY4.append(Y4)
+        self.center.append(center)
 
 
 class calibrate:
@@ -84,8 +89,8 @@ class calibrate:
 
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
-            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 30, markTwo[2] + 30])
-            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 30, markTwo[2] - 30])
+            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 40, markTwo[2] + 30])
+            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 40, markTwo[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 1):
@@ -173,7 +178,7 @@ Cali = calibrate()
 
 record = recording()
 
-target = targeting(60)
+target = targeting(10)
 
 i = 0  # creates blank value for, the for loop for replaying files
 
@@ -202,7 +207,7 @@ while(cv2.waitKey(1) != 27):
         colorTwo = cv2.inRange(hsv, Cali.minColorTwo, Cali.maxColorTwo)
         colorThree = cv2.inRange(hsv, Cali.minColorThree, Cali.maxColorThree)
         colorFour = cv2.inRange(hsv, Cali.minColorFour, Cali.maxColorFour)
-
+        cv2.imshow("colorOne",colorTwo)
         kernel = numpy.ones((5, 5), numpy.uint8)  # just a 5x5 grid of ones
 
         colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)  # deletes pixel groups less then 15x15 in size
@@ -246,14 +251,19 @@ while(cv2.waitKey(1) != 27):
             cv2.circle(ogFrame, (cX4, cY4), 15, (78, 255, 237), -1)
 
     elif(cv2.getTrackbarPos("ReWatch?", "UI") == 1):  # math to jump straight to here if its replaying a recording
-        if(type(vid) is not None):
+        
+        
+        if(type(vid) is None):
             print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
-        length = len(file["Unnamed: 0"])  # get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
+        length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
+        print(length)
         if(i > length - 3):  # prior said stopper
             i = 0
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
             continue
+        
         else:
+            print(i)
             i = i + 1
 
         cX1 = file["cX1"][i]  # reads the locations of the points and puts them into the variables to be displayed
@@ -264,6 +274,7 @@ while(cv2.waitKey(1) != 27):
         cY3 = file["cY3"][i]
         cX4 = file["cX4"][i]
         cY4 = file["cY4"][i]
+        center = file["center"][i]
         ogFrame = numpy.zeros((len(ogFrame), len(ogFrame[0]), 3), dtype = numpy.uint8)
         # creates a black background so that it can put the dots on without interference
         cv2.circle(ogFrame, (cX1, cY1), 15, (0, 0, 255), -1)  # puts dots in the positions
@@ -284,9 +295,7 @@ while(cv2.waitKey(1) != 27):
 
     if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4):  # only allow angle calculations if it can see all the color positions
 
-        if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
-            # get the current time in millis
-            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000))
+        
         if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
             
             Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
@@ -303,7 +312,7 @@ while(cv2.waitKey(1) != 27):
             yi = int(m1 * xi + b1)
 
             cv2.circle(ogFrame, (xi, yi), 15, (150, 150, 150), -1)  # put a circle on the intercept location
-
+        
         # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to https://stackoverflow.com/a/28530929 by Jason S
 
         points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
@@ -334,21 +343,30 @@ while(cv2.waitKey(1) != 27):
                 cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                 # puts the outangle onto the screen inbetween the three points
         
+        if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))):
+            direction = 1
+        else:
+            direction = 0
+            
+        center = target.Target((m1,xi,yi,direction))
         
-        center = target.Target((m1,xi,yi))
-        cv2.circle(ogFrame,center,15,(0,0,0),-1)
-        cv2.line(ogFrame,center,(xi,yi),(0,0,0),10)
+        cv2.circle(ogFrame,center,15,(150,150,150),-1)
+        cv2.line(ogFrame,center,(xi,yi),(150,150,150),10)
+        
+        if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
+            # get the current time in millis
+            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), center)
     else:
         if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
             Cali.clickNumber = 0
             Cali.hide = True
-        cv2.setTrackbarPos("Record", "UI", 0)  # stops recording if one of the points disappears from view
+        #cv2.setTrackbarPos("Record", "UI", 0)  # stops recording if one of the points disappears from view
 
     cv2.imshow("LiveFeed", ogFrame)  # display frame
 
     if(cv2.getTrackbarPos("Save?", "UI") == 1 and len(record.dtime) > 0):  # if the user says to save this if statement compiles all the variables into a dicationary
-        db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2": record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4}  # dictionary of values and each value is an array
-        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4")  # headers for the .csv file
+        db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2": record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4, "center": record.center}  # dictionary of values and each value is an array
+        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "center")  # headers for the .csv file
         df = pandas.DataFrame(data = db)  # create a data frame with the data equal to db
 
         dPath = path.join("C:", "Users", path.expanduser("~"), "Documents", "CAPT")  # file path
