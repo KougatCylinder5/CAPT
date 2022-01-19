@@ -34,7 +34,7 @@ class targeting:
         slope, x, y, orientation = info
         slopeD = math.atan(slope) * 180/math.pi
         combinedD = slopeD + (self.targetRadians * 180/math.pi)
-        print(round(x + (-300 * math.cos(combinedD * math.pi/180))),round( y + (-300 * math.sin(combinedD * math.pi/180))))
+
         if(orientation == 1):
             return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))
         elif(orientation == 0):
@@ -256,14 +256,13 @@ while(cv2.waitKey(1) != 27):
         if(type(vid) is None):
             print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
         length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
-        print(length)
+        
         if(i > length - 3):  # prior said stopper
             i = 0
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
             continue
         
         else:
-            print(i)
             i = i + 1
 
         cX1 = file["cX1"][i]  # reads the locations of the points and puts them into the variables to be displayed
