@@ -32,12 +32,11 @@ class targeting:
         
     def Target(self,info):
         slope, x, y = info
-        slopeR = math.tan(slope)
-        addedR = int(math.sin(self.targetRadians - slopeR)* x)
-        print(addedR)
-        
-        #return((int(x + 100 * math.cos(45)),int(y + 100 * math.sin(45))))
-        return(addedR,0)
+        slopeD = math.atan(slope) * 180/math.pi
+        combinedD = slopeD + (self.targetRadians * 180/math.pi)
+        print(round(x + (-300 * math.cos(combinedD * math.pi/180))),round( y + (-300 * math.sin(combinedD * math.pi/180))))
+        return(round(x + (-300 * math.cos(combinedD * math.pi/180))),round( y + (-300 * math.sin(combinedD * math.pi/180))))
+        #Areturn(addedR,0)
 
 class recording:  # stores all the recording related information
 
@@ -174,7 +173,7 @@ Cali = calibrate()
 
 record = recording()
 
-target = targeting(45)
+target = targeting(60)
 
 i = 0  # creates blank value for, the for loop for replaying files
 
