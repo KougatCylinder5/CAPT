@@ -22,8 +22,8 @@ vid.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 vid.set(cv2.CAP_PROP_GAIN, 95)
 vid.set(cv2.CAP_PROP_BRIGHTNESS, 85)
 vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
-vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
-vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 900)
+#vid.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+#vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 class targeting:
     
@@ -32,14 +32,14 @@ class targeting:
         
     def Target(self,info):
         slope, x, y, orientation = info
-        slopeD = math.atan(slope) * 180/math.pi
-        combinedD = slopeD + (self.targetRadians * 180/math.pi)
-
-        if(orientation == 1):
+        slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
+        # add the target angle and the current angle of the stationary segment together
+        if(orientation == 1):# if the stationary arm is to the left or right (this is )
+            combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)
             return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))
         elif(orientation == 0):
-            return(round(x + (-400 * math.cos((combinedD + 90) * math.pi/180))),round( y + (-400 * math.sin((combinedD + 90) * math.pi/180))))
-        Areturn(addedR,0)
+            combinedD = slopeD + (self.targetRadians * 180/math.pi)
+            return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin((combinedD * math.pi/180)))))
 
 class recording:  # stores all the recording related information
 
@@ -147,7 +147,11 @@ def gain(value):
     vid.set(cv2.CAP_PROP_GAIN, value)
 def exposure(value):
     vid.set(cv2.CAP_PROP_EXPOSURE, value - 20)
-
+    
+target = targeting(0)
+def targetA(value):
+    global target
+    target.targetRadians = (180 - value) * math.pi/180
 
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow("UI")
@@ -155,6 +159,7 @@ cv2.namedWindow("UI")
 cv2.imshow("UI",numpy.ones((50,300),dtype = numpy.uint8))
 
 cv2.createTrackbar("Calibrate", "UI", 0, 1, lambda x: None)  # creating trackbars for grabbing user input
+cv2.createTrackbar("Target Angle", "UI", 0, 180, targetA)
 cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Save?", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
@@ -177,8 +182,6 @@ angle = [None] * 5  # empty array for averaging the degrees
 Cali = calibrate()
 
 record = recording()
-
-target = targeting(10)
 
 i = 0  # creates blank value for, the for loop for replaying files
 
@@ -207,8 +210,8 @@ while(cv2.waitKey(1) != 27):
         colorTwo = cv2.inRange(hsv, Cali.minColorTwo, Cali.maxColorTwo)
         colorThree = cv2.inRange(hsv, Cali.minColorThree, Cali.maxColorThree)
         colorFour = cv2.inRange(hsv, Cali.minColorFour, Cali.maxColorFour)
-        cv2.imshow("colorOne",colorTwo)
-        kernel = numpy.ones((5, 5), numpy.uint8)  # just a 5x5 grid of ones
+        
+        kernel = numpy.ones((15, 15), numpy.uint8)  # just a 5x5 grid of ones
 
         colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)  # deletes pixel groups less then 15x15 in size
         colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)  # fills holes pixel groups that are more then 15x15 in size with the hole being less then 15x15 in size
@@ -256,7 +259,6 @@ while(cv2.waitKey(1) != 27):
         if(type(vid) is None):
             print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
         length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
-        
         if(i > length - 3):  # prior said stopper
             i = 0
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
@@ -306,7 +308,7 @@ while(cv2.waitKey(1) != 27):
         m2 = (cY3-cY4)/(cX3-cX4)
         b1 = cY1 - m1 * cX1  # calculated the y-intercept for each line
         b2 = cY3 - m2 * cX3
-        if(m1 != m2):  # if the lines are parralell stop to prevent an division by zero error
+        if(m1 != m2):  # if the lines are parrallel stop to prevent an division by zero error
             xi = int((b1 - b2) / (m2 - m1))
             yi = int(m1 * xi + b1)
 
@@ -346,7 +348,7 @@ while(cv2.waitKey(1) != 27):
             direction = 1
         else:
             direction = 0
-            
+        
         center = target.Target((m1,xi,yi,direction))
         
         cv2.circle(ogFrame,center,15,(150,150,150),-1)
