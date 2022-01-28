@@ -30,15 +30,16 @@ class targeting:
         self.targetRadians = angle * math.pi/180
         
     def Target(self,info):
-        slope, x, y, orientation = info
-        slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
-        # add the target angle and the current angle of the stationary segment together
-        if(orientation == 1):# if the stationary arm is to the left or right (this is )
-            combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)
-            return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))
-        elif(orientation == 0):
-            combinedD = slopeD + (self.targetRadians * 180/math.pi)
-            return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin((combinedD * math.pi/180)))))
+        if(self.targetRadians != 0):
+            slope, x, y, orientation = info#disect info which is a tuple into 4 parts
+            slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
+            # add the target angle and the current angle of the stationary segment together
+            if(orientation == 1):# if the stationary arm is to the left or right
+                combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)#specialized adding for each side
+                return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))#draws a straight line fourhundred unit lengths long from xi,yi
+            elif(orientation == 0):#specialized adding for each side
+                combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
+                return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different 
 
 class recording:  # stores all the recording related information
 
@@ -78,20 +79,20 @@ class calibrate:
         self.minColorThree = (100, 50, 0)
         self.maxColorFour = (29, 255, 255)
         self.minColorFour = (13, 305, 182)
-        self.clickNumber = 0
-        self.hide = True
-        self._internalCounterOld = time()
+        self.clickNumber = 0  #records how many times the mouse has been clicked
+        self.hide = True  #hides the lines this is an inverted value so !hide
+        self._internalCounterOld = time()  #stores the time between autocalibration calls
         self.rawImg = None
     # called when calibrating color detection
 
     def startCalibrating(self, x, y):
-
+        #basic math denoting just to save calibrated colors
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
             self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 40, markTwo[2] + 30])
             self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 40, markTwo[2] - 30])
             self.clickNumber = self.clickNumber + 1
-
+            
         elif(self.clickNumber == 1):
             markOne = self.rawImg[y, x]
             self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] + 30, markOne[2] + 30])
@@ -113,12 +114,14 @@ class calibrate:
             cv2.setTrackbarPos("Calibrate", "UI", 0)
 
         else:
+            #just a error catcher if it somehow skips value 3
             raise ValueError("calibrate.clickNumber exceded maximum value")
 
     def autoCalibrate(self, cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4):
+        #calls startCalibrating every 200ms and uses the points to determine the point for the color
         listX = [cX2, cX1, cX3, cX4]
         listY = [cY2, cY1, cY3, cY4]
-        if(self._internalCounterOld < time() - 0.2):
+        if(self._internalCounterOld < time() - 0.2):#basic counting call
             i = 0
             while(i < 3):
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
@@ -130,11 +133,11 @@ file = None
 
 
 def rewatch(value):  # function to determine if to open a .csv file for playback
-    global file
+    global file# file var to be used outside of the function
     if(value == 1):
-        file_path = filedialog.askopenfilename()
+        file_path = filedialog.askopenfilename()#open file location 
         if(len(file_path) > 0):
-            file = pandas.read_csv(file_path)
+            file = pandas.read_csv(file_path)#reads the csv file
             cv2.setTrackbarPos("Record", "UI", 0)
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
@@ -144,8 +147,8 @@ def brightness(value):
     vid.set(cv2.CAP_PROP_BRIGHTNESS, value)
 def gain(value):
     vid.set(cv2.CAP_PROP_GAIN, value)
-def exposure(value):
-    vid.set(cv2.CAP_PROP_EXPOSURE, value - 20)
+def exposure(value): #exposure of the camera
+    vid.set(cv2.CAP_PROP_EXPOSURE, value - 10)
     
 target = targeting(0)
 def targetA(value):
@@ -165,7 +168,7 @@ cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
 cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
 cv2.createTrackbar("Brightness", "UI",0, 200, brightness)
 cv2.createTrackbar("Gain", "UI",0, 200, gain)
-cv2.createTrackbar("Exposure", "UI", 0, 20, exposure)
+cv2.createTrackbar("Exposure", "UI", 0, 10, exposure)
 
 
 def callback(event, x, y, flags, params):
@@ -183,6 +186,8 @@ Cali = calibrate()
 record = recording()
 
 i = 0  # creates blank value for, the for loop for replaying files
+
+runTarget = False
 
 while(cv2.waitKey(1) != 27):
     
@@ -254,13 +259,14 @@ while(cv2.waitKey(1) != 27):
 
     elif(cv2.getTrackbarPos("ReWatch?", "UI") == 1):  # math to jump straight to here if its replaying a recording
         
-        
+        runTarget = True
         if(type(vid) is None):
             print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
         length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
         if(i > length - 3):  # prior said stopper
             i = 0
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
+            runTarget = False
             continue
         
         else:
@@ -275,6 +281,9 @@ while(cv2.waitKey(1) != 27):
         cX4 = file["cX4"][i]
         cY4 = file["cY4"][i]
         targetPoint = file["targetPoint"][i]
+        # slices the targetPoint (returns as a string) into a properly formated Tuple
+        targetPoint = tuple((int(targetPoint[1:targetPoint.index(",")]),int(targetPoint[targetPoint.index(" "):targetPoint.index(")")])))
+        #creates an empty array to put all the lines on
         ogFrame = numpy.zeros((len(ogFrame), len(ogFrame[0]), 3), dtype = numpy.uint8)
         # creates a black background so that it can put the dots on without interference
         cv2.circle(ogFrame, (cX1, cY1), 15, (0, 0, 255), -1)  # puts dots in the positions
@@ -282,12 +291,13 @@ while(cv2.waitKey(1) != 27):
         cv2.circle(ogFrame, (cX3, cY3), 15, (255, 0, 0), -1)
         cv2.circle(ogFrame, (cX4, cY4), 15, (78, 255, 237), -1)
         cv2.waitKey(file["time"][i + 1] - file["time"][i])  # wait for the alotted time so that it doesn't instantly zip to the end
-
+        cv2.setTrackbarPos("Record","UI",0)
+        
     complete = 0
 
     if(cX2 is not None and cX1 is not None and Cali.hide):  # draw lines between the corrosponding dots
         cv2.line(ogFrame, (cX2, cY2), (cX1, cY1), (255, 255, 255), 10)
-        complete = complete + 1
+        complete = complete + 1 #check to ensure both lines have been drawn
 
     if(cX3 is not None and cX4 is not None and Cali.hide):
         cv2.line(ogFrame, (cX3, cY3), (cX4, cY4), (255, 255, 255), 10)
@@ -313,7 +323,8 @@ while(cv2.waitKey(1) != 27):
 
             cv2.circle(ogFrame, (xi, yi), 15, (150, 150, 150), -1)  # put a circle on the intercept location
         
-        # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to https://stackoverflow.com/a/28530929 by Jason S
+        # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to
+        #https://stackoverflow.com/a/28530929 by Jason S
 
         points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
 
@@ -343,18 +354,21 @@ while(cv2.waitKey(1) != 27):
                 cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                 # puts the outangle onto the screen inbetween the three points
         
-        if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))):
-            direction = 1
+        if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))): #checks if the right/left location of the stationary arm
+            direction = 1#this means that its on the left arm
         else:
-            direction = 0
+            direction = 0#this is on the right
         
-        targetPoint = target.Target((m1,xi,yi,direction))
         
-        cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)
-        cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)
+        if(not runTarget):  # if its rewatching old recording don't take the new target points
+            targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
+            
+        cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
+        cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
         
         if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
-            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)
+            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)#run an append on the record function which is a custom made funtion
+            runTarget = False
     else:
         if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
             Cali.clickNumber = 0
