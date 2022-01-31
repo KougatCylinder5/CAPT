@@ -202,8 +202,7 @@ while(cv2.waitKey(1) != 27):
         ret, frame = vid.read()  # read from camera
 
         if(not ret):  # prevents throwing an error due to missing or occupied camera
-            print("Broke")
-            break
+            raise Exception("Camera Not Detected or Disconnected while program is running")
         ogFrame = frame.copy()  # duplicates the frame for overlay purposes
         frame = cv2.blur(frame, (30, 30), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # converts from the BGR to HSV colorspace
