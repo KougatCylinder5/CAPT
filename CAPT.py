@@ -11,12 +11,13 @@ from time import time
 import tkinter as tk  # file manipulation/selection library
 from tkinter import filedialog
 import cv2
-from pysine import sine
+#from pysine import sine
 
 root = tk.Tk()
 root.withdraw()  # deletes empty Tninter box
 
 vid = cv2.VideoCapture(0)
+ret,frame = vid.read()
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 vid.set(cv2.CAP_PROP_GAIN, 95)
 vid.set(cv2.CAP_PROP_BRIGHTNESS, 85)
@@ -36,10 +37,10 @@ class targeting:
             # add the target angle and the current angle of the stationary segment together
             if(orientation == 1):# if the stationary arm is to the left or right
                 combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin(combinedD * math.pi/180))))#draws a straight line fourhundred unit lengths long from xi,yi
+                return(round(x + (100 * math.cos(combinedD * math.pi/180))),round( y + (100 * math.sin(combinedD * math.pi/180))))#draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
                 combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-400 * math.cos(combinedD * math.pi/180))),round( y + (-400 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different 
+                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),round( y + (-100 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different 
 
 class recording:  # stores all the recording related information
 
@@ -198,7 +199,7 @@ while(cv2.waitKey(1) != 27):
         print("Green, Red, Gold, Blue")
         Cali.hide = False
 
-    if(cv2.getTrackbarPos("ReWatch?", "UI") == 0 and type(vid) is not None):  # skips a ton of unnessicary logic if the slider isn't in the correct position
+    if(cv2.getTrackbarPos("ReWatch?", "UI") == 0 and ret):  # skips a ton of unnessicary logic if the slider isn't in the correct position
         ret, frame = vid.read()  # read from camera
 
         if(not ret):  # prevents throwing an error due to missing or occupied camera
@@ -267,6 +268,7 @@ while(cv2.waitKey(1) != 27):
             i = 0
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
             runTarget = False
+            file = None
             continue
         
         else:
@@ -284,7 +286,7 @@ while(cv2.waitKey(1) != 27):
         # slices the targetPoint (returns as a string) into a properly formated Tuple
         targetPoint = tuple((int(targetPoint[1:targetPoint.index(",")]),int(targetPoint[targetPoint.index(" "):targetPoint.index(")")])))
         #creates an empty array to put all the lines on
-        ogFrame = numpy.zeros((len(ogFrame), len(ogFrame[0]), 3), dtype = numpy.uint8)
+        ogFrame = numpy.zeros((480,640, 3), dtype = numpy.uint8)
         # creates a black background so that it can put the dots on without interference
         cv2.circle(ogFrame, (cX1, cY1), 15, (0, 0, 255), -1)  # puts dots in the positions
         cv2.circle(ogFrame, (cX2, cY2), 15, (0, 255, 0), -1)
@@ -295,87 +297,88 @@ while(cv2.waitKey(1) != 27):
         
     complete = 0
 
-    if(cX2 is not None and cX1 is not None and Cali.hide):  # draw lines between the corrosponding dots
-        cv2.line(ogFrame, (cX2, cY2), (cX1, cY1), (255, 255, 255), 10)
-        complete = complete + 1 #check to ensure both lines have been drawn
+    if(file is not None or ret):
+        if(cX2 is not None and cX1 is not None and Cali.hide):  # draw lines between the corrosponding dots
+            cv2.line(ogFrame, (cX2, cY2), (cX1, cY1), (255, 255, 255), 10)
+            complete = complete + 1 #check to ensure both lines have been drawn
 
-    if(cX3 is not None and cX4 is not None and Cali.hide):
-        cv2.line(ogFrame, (cX3, cY3), (cX4, cY4), (255, 255, 255), 10)
-        complete = complete + 1
+        if(cX3 is not None and cX4 is not None and Cali.hide):
+            cv2.line(ogFrame, (cX3, cY3), (cX4, cY4), (255, 255, 255), 10)
+            complete = complete + 1
 
-    if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4):  # only allow angle calculations if it can see all the color positions
+        if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4):  # only allow angle calculations if it can see all the color positions
 
-        
-        if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
             
-            Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
+            if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
+                
+                Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
+                
+            elif(cv2.getTrackbarPos("Calibrate", "UI") == 0):
+                Cali.clickNumber = 0
             
-        elif(cv2.getTrackbarPos("Calibrate", "UI") == 0):
-            Cali.clickNumber = 0
-        
-        m1 = (cY1-cY2)/(cX1-cX2)  # calculate slope so we can determine where the lines intercept
-        m2 = (cY3-cY4)/(cX3-cX4)
-        b1 = cY1 - m1 * cX1  # calculated the y-intercept for each line
-        b2 = cY3 - m2 * cX3
-        if(m1 != m2):  # if the lines are parrallel stop to prevent an division by zero error
-            xi = int((b1 - b2) / (m2 - m1))
-            yi = int(m1 * xi + b1)
+            m1 = (cY1-cY2)/(cX1-cX2)  # calculate slope so we can determine where the lines intercept
+            m2 = (cY3-cY4)/(cX3-cX4)
+            b1 = cY1 - m1 * cX1  # calculated the y-intercept for each line
+            b2 = cY3 - m2 * cX3
+            if(m1 != m2):  # if the lines are parrallel stop to prevent an division by zero error
+                xi = int((b1 - b2) / (m2 - m1))
+                yi = int(m1 * xi + b1)
 
-            cv2.circle(ogFrame, (xi, yi), 15, (150, 150, 150), -1)  # put a circle on the intercept location
-        
-        # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to
-        #https://stackoverflow.com/a/28530929 by Jason S
+                cv2.circle(ogFrame, (xi, yi), 15, (150, 150, 150), -1)  # put a circle on the intercept location
+            
+            # this function does things that are pure magic, I don't have the trig knowlegde to do this credit to
+            #https://stackoverflow.com/a/28530929 by Jason S
 
-        points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
+            points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
 
-        
-        
-        A = points[2] - points[0]
-        B = points[1] - points[0]
-        C = points[2] - points[1]
+            
+            
+            A = points[2] - points[0]
+            B = points[1] - points[0]
+            C = points[2] - points[1]
 
-        angles = []
+            angles = []
 
-        for e1, e2 in ((A, B), (A, C), (B, -C)):
-            num = numpy.dot(e1, e2)
-            denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
-            angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
-        
-        
-        
-        # I grab angle[2] as thats the inside angle and its always that angle
-        if(not numpy.isnan(angles[2])):
-            angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
+            for e1, e2 in ((A, B), (A, C), (B, -C)):
+                num = numpy.dot(e1, e2)
+                denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
+                angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
+            
+            
+            
+            # I grab angle[2] as thats the inside angle and its always that angle
+            if(not numpy.isnan(angles[2])):
+                angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
-            del angle[0]  # deletes the first of my averaging array
+                del angle[0]  # deletes the first of my averaging array
 
-            if(angle[0] is not None):  # doesn't run this if the averaging array is still filling
-                outangle = round(statistics.mean(angle))  # take the average number of the whole array
-                cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
-                # puts the outangle onto the screen inbetween the three points
-        
-        if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))): #checks if the right/left location of the stationary arm
-            direction = 1#this means that its on the left arm
+                if(angle[0] is not None):  # doesn't run this if the averaging array is still filling
+                    outangle = round(statistics.mean(angle))  # take the average number of the whole array
+                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
+                    # puts the outangle onto the screen inbetween the three points
+            
+            if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))): #checks if the right/left location of the stationary arm
+                direction = 1#this means that its on the left arm
+            else:
+                direction = 0#this is on the right
+            
+            
+            if(not runTarget):  # if its rewatching old recording don't take the new target points
+                targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
+                
+            cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
+            cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
+            
+            if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
+                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)#run an append on the record function which is a custom made funtion
+                runTarget = False
         else:
-            direction = 0#this is on the right
-        
-        
-        if(not runTarget):  # if its rewatching old recording don't take the new target points
-            targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
-            
-        cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
-        cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
-        
-        if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
-            record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)#run an append on the record function which is a custom made funtion
-            runTarget = False
-    else:
-        if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
-            Cali.clickNumber = 0
-            Cali.hide = True
-        #cv2.setTrackbarPos("Record", "UI", 0)  # stops recording if one of the points disappears from view
+            if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
+                Cali.clickNumber = 0
+                Cali.hide = True
+            #cv2.setTrackbarPos("Record", "UI", 0)  # stops recording if one of the points disappears from view
 
-    cv2.imshow("LiveFeed", ogFrame)  # display frame
+        cv2.imshow("LiveFeed", ogFrame)  # display frame
 
     if(cv2.getTrackbarPos("Save?", "UI") == 1 and len(record.dtime) > 0):  # if the user says to save this if statement compiles all the variables into a dicationary
         db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2": record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4, "targetPoint": record.targetPoint}  # dictionary of values and each value is an array
@@ -404,4 +407,5 @@ while(cv2.waitKey(1) != 27):
 cv2.destroyAllWindows()
 # delete the windows and free the camera to the user again
 vid.release()
+
 
