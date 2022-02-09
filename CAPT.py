@@ -1,17 +1,17 @@
 # Cory Mavis
 
-
 import pandas  # CSV manipulation library
 import numpy
 from os import makedirs
 import os.path as path  # directory library
 import statistics
 import math
-from time import time
+import time
 import tkinter as tk  # file manipulation/selection library
 from tkinter import filedialog
 import cv2
-#from pysine import sine
+from pysine import sine
+import threading
 
 root = tk.Tk()
 root.withdraw()  # deletes empty Tninter box
@@ -40,7 +40,7 @@ class targeting:
                 return(round(x + (100 * math.cos(combinedD * math.pi/180))),round( y + (100 * math.sin(combinedD * math.pi/180))))#draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
                 combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),round( y + (-100 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different 
+                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),round( y + (-100 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different
 
 class recording:  # stores all the recording related information
 
@@ -82,7 +82,7 @@ class calibrate:
         self.minColorFour = (13, 305, 182)
         self.clickNumber = 0  #records how many times the mouse has been clicked
         self.hide = True  #hides the lines this is an inverted value so !hide
-        self._internalCounterOld = time()  #stores the time between autocalibration calls
+        self._internalCounterOld = time.time()  #stores the time between autocalibration calls
         self.rawImg = None
     # called when calibrating color detection
 
@@ -142,7 +142,19 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
             cv2.setTrackbarPos("Record", "UI", 0)
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
+tDif = 0 
+endThread = False
+def soundAlarm():
+    global tDif
+    global endThread
+    while(not endThread):
+        time.sleep(0.1)
+        if(tDif > 0.1):
+            print(tDif/20)
+            sine(2000,tDif/20)
 
+alarmThread = threading.Thread(target = soundAlarm)
+alarmThread.start()
 
 def brightness(value):
     vid.set(cv2.CAP_PROP_BRIGHTNESS, value)
@@ -365,6 +377,8 @@ while(cv2.waitKey(1) != 27):
             
             if(not runTarget):  # if its rewatching old recording don't take the new target points
                 targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
+                if(angle[0] is not None):
+                    tDif = abs(target.targetRadians * 180/math.pi - outangle)
                 
             cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
             cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
@@ -376,7 +390,7 @@ while(cv2.waitKey(1) != 27):
             if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
                 Cali.clickNumber = 0
                 Cali.hide = True
-            #cv2.setTrackbarPos("Record", "UI", 0)  # stops recording if one of the points disappears from view
+            # stops recording if one of the points disappears from view
 
         cv2.imshow("LiveFeed", ogFrame)  # display frame
 
@@ -403,9 +417,9 @@ while(cv2.waitKey(1) != 27):
         cv2.setTrackbarPos("Save?", "UI", 0)
         # reset the trackbar asking if you want to save the
         # recording to exit the loop
-
 cv2.destroyAllWindows()
 # delete the windows and free the camera to the user again
 vid.release()
+endThread = True
 
 
