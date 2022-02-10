@@ -2,22 +2,22 @@
 
 import pandas  # CSV manipulation library
 import numpy
-from os import makedirs
+from os import makedirs # creation of file to put results into
 import os.path as path  # directory library
-import statistics
-import math
-import time
+import statistics # runs median to average angles
+import math # math functions for calculating angles
+import time # record time between frames
 import tkinter as tk  # file manipulation/selection library
-from tkinter import filedialog
-import cv2
-from pysine import sine
-import threading
+from tkinter import filedialog # allows openning of files
+import cv2 # camera interaction
+from pysine import sine# plays sound 
+import threading# allows creation of extra threads so that I can play audio without interupting the camera
 
-root = tk.Tk()
+root = tk.Tk() # creates empty Tninter object
 root.withdraw()  # deletes empty Tninter box
 
-vid = cv2.VideoCapture(0)
-ret,frame = vid.read()
+vid = cv2.VideoCapture(0) # open camera
+ret,frame = vid.read() # read camera frame
 vid.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
 vid.set(cv2.CAP_PROP_GAIN, 95)
 vid.set(cv2.CAP_PROP_BRIGHTNESS, 85)
@@ -25,10 +25,11 @@ vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 #vid.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
 #vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-class targeting:
+class targeting: # targeting class to contain varibles and functions
     
     def __init__(self,angle):
         self.targetRadians = angle * math.pi/180
+        # converts the angle into radians for easier manipulation
         
     def Target(self,info):
         if(self.targetRadians != 0):
@@ -37,11 +38,14 @@ class targeting:
             # add the target angle and the current angle of the stationary segment together
             if(orientation == 1):# if the stationary arm is to the left or right
                 combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (100 * math.cos(combinedD * math.pi/180))),round( y + (100 * math.sin(combinedD * math.pi/180))))#draws a straight line fourhundred unit lengths long from xi,yi
+                return(round(x + (100 * math.cos(combinedD * math.pi/180))),\
+                       round( y + (100 * math.sin(combinedD * math.pi/180))))
+                #draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
                 combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),round( y + (-100 * math.sin((combinedD * math.pi/180)))))#same return function as above with slightly different
-
+                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),\
+                       round( y + (-100 * math.sin((combinedD * math.pi/180)))))
+                #same return function as above with -100 so it faces in the correct direction
 class recording:  # stores all the recording related information
 
     def __init__(self):
@@ -57,6 +61,7 @@ class recording:  # stores all the recording related information
         self.targetPoint = []
 
     def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, targetPoint):
+        # all in one function to append values to an array
         self.dtime.append(time)
         self.dX1.append(X1)
         self.dY1.append(Y1)
@@ -90,28 +95,37 @@ class calibrate:
         #basic math denoting just to save calibrated colors
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
+            #grab value of the x,y locations to calibrate
             self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 40, markTwo[2] + 30])
+            #upper limit for the colors based upon where it was clicked
             self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 40, markTwo[2] - 30])
+            #lower limit for the colors based upon where it was clicked
             self.clickNumber = self.clickNumber + 1
-            
+            #adds one to the click number so it goes onto the next color
         elif(self.clickNumber == 1):
+            #same process as above
             markOne = self.rawImg[y, x]
             self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] + 30, markOne[2] + 30])
             self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 30, markOne[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 2):
+            #same process as above
             markThree = self.rawImg[y, x]
             self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 30])  # defines upper and lower limit
             self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 30, markThree[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 3):
+            #same process as above
             markFour = self.rawImg[y, x]
             self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] + 30, markFour[2] + 30])
             self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 30, markFour[2] - 30])
+            #resets the click number back to 0
             self.clickNumber = 0
+            #show the lines again between the points
             self.hide = True
+            #exit the calibration mode
             cv2.setTrackbarPos("Calibrate", "UI", 0)
 
         else:
@@ -121,13 +135,16 @@ class calibrate:
     def autoCalibrate(self, cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4):
         #calls startCalibrating every 200ms and uses the points to determine the point for the color
         listX = [cX2, cX1, cX3, cX4]
+        #just a list of x locations
         listY = [cY2, cY1, cY3, cY4]
-        if(self._internalCounterOld < time() - 0.2):#basic counting call
-            i = 0
-            while(i < 3):
+        #just a list of y locations
+        if(self._internalCounterOld < time.time() - 0.2):#basic counting call
+            
+            for i in listX:
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
-                i = i + 1
-            self._internalCounterOld = time()
+                
+            self._internalCounterOld = time.time()
+            print(self._internalCounterOld)
 
 
 file = None
@@ -150,7 +167,8 @@ def soundAlarm():
     while(not endThread):
         time.sleep(0.1)
         if(tDif > 0.1):
-            print(tDif/20)
+            print(tDif)
+            print(tDif/25)
             sine(2000,tDif/20)
 
 alarmThread = threading.Thread(target = soundAlarm)
@@ -378,7 +396,7 @@ while(cv2.waitKey(1) != 27):
             if(not runTarget):  # if its rewatching old recording don't take the new target points
                 targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
                 if(angle[0] is not None):
-                    tDif = abs(target.targetRadians * 180/math.pi - outangle)
+                    tDif = abs(angle[0] - (target.targetRadians * 180/math.pi))
                 
             cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
             cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
