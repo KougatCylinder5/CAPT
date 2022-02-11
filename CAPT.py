@@ -199,7 +199,10 @@ def soundAlarm(): # alarm function
 alarmThread = threading.Thread(target = soundAlarm) # assign a function to a thread 
 alarmThread.start() # start the thread quickly atert
 
-    
+def camera(value):
+    global vid
+    vid = cv2.createCapture(value)
+
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE) # create the named windows
 cv2.namedWindow("UI")
 
@@ -217,6 +220,7 @@ cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
 cv2.createTrackbar("Brightness", "UI",0, 200, brightness)
 cv2.createTrackbar("Gain", "UI",0, 200, gain)
 cv2.createTrackbar("Exposure", "UI", 0, 10, exposure)
+cv2.createTrackbar("Camera", "UI", 0, 4,lambda x:None)
 
 
 def callback(event, x, y, flags, params): #create clickable call back
