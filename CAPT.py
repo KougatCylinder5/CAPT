@@ -2,6 +2,7 @@
 
 import pandas  # CSV manipulation library
 import numpy
+import webbrowser
 from os import makedirs # creation of file to put results into
 import os.path as path  # directory library
 import statistics # runs median to average angles
@@ -12,6 +13,9 @@ from tkinter import filedialog # allows openning of files
 import cv2 # camera interaction
 from pysine import sine# plays sound 
 import threading# allows creation of extra threads so that I can play audio without interupting the camera
+
+webbrowser.open([url = "https://github.com/KougatCylinder5/CAPT/wiki", new = 1])
+
 
 root = tk.Tk() # creates empty Tninter object
 root.withdraw()  # deletes empty Tninter box
@@ -24,6 +28,7 @@ vid.set(cv2.CAP_PROP_BRIGHTNESS, 85)
 vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 #vid.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
 #vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 
 class targeting: # targeting class to contain varibles and functions
     
