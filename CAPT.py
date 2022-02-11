@@ -14,7 +14,7 @@ import cv2 # camera interaction
 from pysine import sine# plays sound 
 import threading# allows creation of extra threads so that I can play audio without interupting the camera
 
-webbrowser.open([url = "https://github.com/KougatCylinder5/CAPT/wiki", new = 1])
+webbrowser.open(url = "https://github.com/KougatCylinder5/CAPT/wiki", new = 1)
 
 
 root = tk.Tk() # creates empty Tninter object
@@ -38,21 +38,24 @@ class targeting: # targeting class to contain varibles and functions
         
     def Target(self,info):
         flip = 1
-        if(cv2.getTrackbarPos("Flip Lineside") == 1):
+        removeAdding = 180
+            
+        if(cv2.getTrackbarPos("Flip Lineside","UI") == 1):
             flip = -1
         if(self.targetRadians != 0):
+            
             slope, x, y, orientation = info#disect info which is a tuple into 4 parts
             slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
             # add the target angle and the current angle of the stationary segment together
             if(orientation == 1):# if the stationary arm is to the left or right
-                combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (100 * flip * math.cos(combinedD * math.pi/180))),\
-                       round(y + (100 * flip * math.sin(combinedD * math.pi/180))))
+                combinedD = slopeD + 180 - (self.targetRadians * flip * 180/math.pi)#specialized adding for each side
+                return(round(x + (100 * math.cos(combinedD * math.pi/180))),\
+                       round(y + (100 * math.sin(combinedD * math.pi/180))))
                 #draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
-                combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-100 * flip * math.cos(combinedD * math.pi/180))),\
-                       round(y + (-100 * flip * math.sin((combinedD * math.pi/180)))))
+                combinedD = slopeD + (self.targetRadians * flip * 180/math.pi)#specialized adding for each side
+                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),\
+                       round(y + (-100 * math.sin((combinedD * math.pi/180)))))
                 #same return function as above with -100 so it faces in the correct direction
 class recording:  # stores all the recording related information
 
@@ -67,8 +70,9 @@ class recording:  # stores all the recording related information
         self.dX4 = []
         self.dY4 = []
         self.targetPoint = []
+        self.flip = []
 
-    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, targetPoint):
+    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, targetPoint,flip):
         # all in one function to append values to an array
         self.dtime.append(time)
         self.dX1.append(X1)
@@ -80,6 +84,7 @@ class recording:  # stores all the recording related information
         self.dX4.append(X4)
         self.dY4.append(Y4)
         self.targetPoint.append(targetPoint)
+        self.flip.append(flip)
 
 
 class calibrate:
@@ -181,7 +186,7 @@ def exposure(value): #exposure of the camera
 target = targeting(0) #creates empty object and assigns a default value of 0
 def targetA(value): # grabs the value of the targetangle trackbar and overwrites the angle of the target radians
     global target
-    target = targeting(value)
+    target = targeting( value)
 
 tDif = 0 #measured in degrees from target
 endThread = False # ends the tread if the main program hangs
@@ -202,7 +207,7 @@ alarmThread.start() # start the thread quickly atert
 def camera(value):
     global vid
     try:
-        vid = cv2.createCapture(value)
+        vid = cv2.VideoCapture(value)
     except:
         pass
     
@@ -223,7 +228,7 @@ cv2.createTrackbar("Auto Cali","UI", 0, 1,lambda x: None)
 cv2.createTrackbar("Brightness", "UI",0, 200, brightness)
 cv2.createTrackbar("Gain", "UI",0, 200, gain)
 cv2.createTrackbar("Exposure", "UI", 0, 10, exposure)
-cv2.createTrackbar("Camera", "UI", 0, 4,lambda x:None)
+cv2.createTrackbar("Camera", "UI", 0, 4, camera)
 
 
 def callback(event, x, y, flags, params): #create clickable call back
@@ -344,6 +349,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         targetPoint = file["targetPoint"][i]
         # slices the targetPoint (returns as a string) into a properly formated Tuple
         targetPoint = tuple((int(targetPoint[1:targetPoint.index(",")]),int(targetPoint[targetPoint.index(" "):targetPoint.index(")")])))
+        cv2.setTrackbarPos("Flip Lineside","UI",1)
         #creates an empty array to put all the lines on
         ogFrame = numpy.zeros((480,640, 3), dtype = numpy.uint8)
         # creates a black background so that it can put the dots on without interference
@@ -398,9 +404,11 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             num = numpy.dot(B, -C)
             denom = numpy.linalg.norm(B) * numpy.linalg.norm(-C)
             try: # this is here because a "true divide" sometimes throws a warning and this hides it
-                angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
-            except:
-                pass # pass on the exception because it has no negative effects
+                angles = numpy.arccos(num/denom) * 180 / numpy.pi
+            except RuntimeWarning:
+                angles = None # pass on the exception because it has no negative effects
+            if(numpy.isnan(angles)):
+                angles = None
             """
             ORIGINAL
             
@@ -409,9 +417,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             A = points[2] - points[0]
             B = points[1] - points[0]
             C = points[2] - points[1]
-
             angles = []
-
             for e1, e2 in ((A, B), (A, C), (B, -C)):
                 num = numpy.dot(e1, e2)
                 denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
@@ -420,16 +426,16 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             
             
             # I grab angle as thats the inside angle and its always that angle
-            if(not numpy.isnan(angles)):
+            if(angles is not None ):
                 angle.append(int(str(round(angles, 0))[:-2]))  
                 # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
                 del angle[0]  # deletes the first of my averaging array
-
+                
                 if(angle[0] is not None):  # doesn't run this if the averaging array is still filling
                     outangle = round(statistics.mean(angle))  # take the average number of the whole array
-                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), /
-                                                                      int(statistics.mean([cY1, int(yi), cY4]))),/
+                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), \
+                                                                      int(statistics.mean([cY1, int(yi), cY4]))),\
                                                                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                     # puts the outangle onto the screen inbetween the three points
             
@@ -442,13 +448,14 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             if(not runTarget):  # if its rewatching old recording don't take the new target points
                 targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
                 if(angle[0] is not None):
-                    tDif = abs(outangle[0] - (target.targetRadians * 180/math.pi))
-                
-            cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
-            cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
+                    tDif = abs(outangle - (target.targetRadians * 180/math.pi))
+            if(targetPoint is not None):
+                cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
+                cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
             
             if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
-                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)
+                flip = cv2.getTrackbarPos("Flip Lineside", "UI")
+                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time.time()*1000), targetPoint, flip)
                 #run an append on the record function which is a custom made funtion
                 runTarget = False
         else:
@@ -462,8 +469,8 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         # if the user says to save this if statement compiles all the variables into a dicationary
         db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2":\
               record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4,\
-              "targetPoint": record.targetPoint}  # dictionary of values and each value is an array
-        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "targetPoint")  # headers for the .csv file
+              "targetPoint": record.targetPoint, "flip": record.flip}  # dictionary of values and each value is an array
+        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "targetPoint", "flip")  # headers for the .csv file
         df = pandas.DataFrame(data = db)  # create a data frame with the data equal to db
 
         dPath = path.join("C:", "Users", path.expanduser("~"), "Documents", "CAPT")  # file path
@@ -488,5 +495,3 @@ cv2.destroyAllWindows()
 # delete the windows and free the camera to the user again
 vid.release()
 endThread = True
-
-
