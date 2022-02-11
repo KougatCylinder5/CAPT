@@ -32,19 +32,22 @@ class targeting: # targeting class to contain varibles and functions
         # converts the angle into radians for easier manipulation
         
     def Target(self,info):
+        flip = 1
+        if(cv2.getTrackbarPos("Flip Lineside") == 1):
+            flip = -1
         if(self.targetRadians != 0):
             slope, x, y, orientation = info#disect info which is a tuple into 4 parts
             slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
             # add the target angle and the current angle of the stationary segment together
             if(orientation == 1):# if the stationary arm is to the left or right
                 combinedD = slopeD + 180 - (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (100 * math.cos(combinedD * math.pi/180))),\
-                       round( y + (100 * math.sin(combinedD * math.pi/180))))
+                return(round(x + (100 * flip * math.cos(combinedD * math.pi/180))),\
+                       round(y + (100 * flip * math.sin(combinedD * math.pi/180))))
                 #draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
                 combinedD = slopeD + (self.targetRadians * 180/math.pi)#specialized adding for each side
-                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),\
-                       round( y + (-100 * math.sin((combinedD * math.pi/180)))))
+                return(round(x + (-100 * flip * math.cos(combinedD * math.pi/180))),\
+                       round(y + (-100 * flip * math.sin((combinedD * math.pi/180)))))
                 #same return function as above with -100 so it faces in the correct direction
 class recording:  # stores all the recording related information
 
@@ -192,6 +195,7 @@ cv2.imshow("UI",numpy.ones((50,300),dtype = numpy.uint8))
 
 cv2.createTrackbar("Calibrate", "UI", 0, 1, lambda x: None)  # creating trackbars for grabbing user input
 cv2.createTrackbar("Target Angle", "UI", 0, 200, targetA)
+cv2.createTrackbar("Flip Lineside","UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Record", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("Save?", "UI", 0, 1, lambda x: None)
 cv2.createTrackbar("ReWatch?", "UI", 0, 1, rewatch)
@@ -291,7 +295,8 @@ while(cv2.waitKey(1) != 27):
         
         runTarget = True
         if(type(vid) is None):
-            print("Can only use the replay feature due to missing camera, if this is not supposed to be happening ensure camera isn't getting used by another program and restart CAPT")
+            print("Can only use the replay feature due to missing camera, if this is not supposed\
+            to be happening ensure camera isn't getting used by another program and restart CAPT")
         length = len(file["Unnamed: 0"])# get the length of the file so that it can be stopped one frame before it reaches the end to prevent exceptions
         if(i > length - 3):  # prior said stopper
             i = 0
@@ -395,7 +400,7 @@ while(cv2.waitKey(1) != 27):
             if(not runTarget):  # if its rewatching old recording don't take the new target points
                 targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
                 if(angle[0] is not None):
-                    tDif = abs(angle[0] - (target.targetRadians * 180/math.pi))
+                    tDif = abs(outangle[0] - (target.targetRadians * 180/math.pi))
                 
             cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
             cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
@@ -412,7 +417,9 @@ while(cv2.waitKey(1) != 27):
         cv2.imshow("LiveFeed", ogFrame)  # display frame
 
     if(cv2.getTrackbarPos("Save?", "UI") == 1 and len(record.dtime) > 0):  # if the user says to save this if statement compiles all the variables into a dicationary
-        db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2": record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4, "targetPoint": record.targetPoint}  # dictionary of values and each value is an array
+        db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2":\
+              record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4,\
+              "targetPoint": record.targetPoint}  # dictionary of values and each value is an array
         columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "targetPoint")  # headers for the .csv file
         df = pandas.DataFrame(data = db)  # create a data frame with the data equal to db
 
