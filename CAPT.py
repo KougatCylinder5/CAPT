@@ -115,7 +115,8 @@ class calibrate:
         elif(self.clickNumber == 2):
             #same process as above
             markThree = self.rawImg[y, x]
-            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 30])  # defines upper and lower limit
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 30])  
+            # defines upper and lower limit
             self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 30, markThree[2] - 30])
             self.clickNumber = self.clickNumber + 1
 
@@ -172,10 +173,10 @@ def gain(value):
 def exposure(value): #exposure of the camera
     vid.set(cv2.CAP_PROP_EXPOSURE, value - 10)
     
-target = targeting(0)
-def targetA(value):
+target = targeting(0) #creates empty object and assigns a default value of 0
+def targetA(value): # grabs the value of the targetangle trackbar and overwrites the angle of the target radians
     global target
-    target.targetRadians = (180 - value) * math.pi/180
+    target = targeting(value)
 
 tDif = 0 #measured in degrees from target
 endThread = False # ends the tread if the main program hangs
@@ -261,8 +262,10 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         
         kernel = numpy.ones((15, 15), numpy.uint8)  # just a 5x5 grid of ones
 
-        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)  # deletes pixel groups less then 15x15 in size
-        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)  # fills holes pixel groups that are more then 15x15 in size with the hole being less then 15x15 in size
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)  
+        # deletes pixel groups less then 15x15 in size
+        colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_CLOSE, kernel)  
+        # fills holes pixel groups that are more then 15x15 in size with the hole being less then 15x15 in size
 
         colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_OPEN, kernel)
         colorTwo = cv2.morphologyEx(colorTwo, cv2.MORPH_CLOSE, kernel)
@@ -341,23 +344,23 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         
     complete = 0
 
-    if(file is not None or ret):
-        if(cX2 is not None and cX1 is not None and Cali.hide):  # draw lines between the corrosponding dots
+    if(file is not None or ret): #only run if its playing a file back or the camera is running
+        if(cX2 is not None and cX1 is not None and Cali.hide): # tests if all the dots are present
             cv2.line(ogFrame, (cX2, cY2), (cX1, cY1), (255, 255, 255), 10)
             complete = complete + 1 #check to ensure both lines have been drawn
 
-        if(cX3 is not None and cX4 is not None and Cali.hide):
+        if(cX3 is not None and cX4 is not None and Cali.hide): # tests if all the dots are present
             cv2.line(ogFrame, (cX3, cY3), (cX4, cY4), (255, 255, 255), 10)
             complete = complete + 1
 
         if(complete == 2 and Cali.hide and cX1 != cX2 and cX3 != cX4):  # only allow angle calculations if it can see all the color positions
 
             
-            if(cv2.getTrackbarPos("Auto Cali", "UI") == 1):
+            if(cv2.getTrackbarPos("Auto Cali", "UI") == 1): # if autocali is 1 run the autocaibrate code
                 
                 Cali.autoCalibrate(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4)
                 
-            elif(cv2.getTrackbarPos("Calibrate", "UI") == 0):
+            elif(cv2.getTrackbarPos("Calibrate", "UI") == 0): # if its 0 reset the click number
                 Cali.clickNumber = 0
             
             m1 = (cY1-cY2)/(cX1-cX2)  # calculate slope so we can determine where the lines intercept
@@ -374,8 +377,22 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             #https://stackoverflow.com/a/28530929 by Jason S
 
             points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
-
             
+            B = points[1] - points[0]
+            C = points[2] - points[1]
+
+            angles = None
+
+            num = numpy.dot(B, -C)
+            denom = numpy.linalg.norm(B) * numpy.linalg.norm(-C)
+            try: # this is here because a "true divide" sometimes throws a warning and this hides it
+                angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
+            except:
+                pass # pass on the exception because it has no negative effects
+            """
+            ORIGINAL
+            
+            points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
             
             A = points[2] - points[0]
             B = points[1] - points[0]
@@ -387,18 +404,21 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
                 num = numpy.dot(e1, e2)
                 denom = numpy.linalg.norm(e1) * numpy.linalg.norm(e2)
                 angles.append(numpy.arccos(num/denom) * 180 / numpy.pi)
+            """
             
             
-            
-            # I grab angle[2] as thats the inside angle and its always that angle
-            if(not numpy.isnan(angles[2])):
-                angle.append(int(str(round(angles[2], 0))[:-2]))  # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
+            # I grab angle as thats the inside angle and its always that angle
+            if(not numpy.isnan(angles)):
+                angle.append(int(str(round(angles, 0))[:-2]))  
+                # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
                 del angle[0]  # deletes the first of my averaging array
 
                 if(angle[0] is not None):  # doesn't run this if the averaging array is still filling
                     outangle = round(statistics.mean(angle))  # take the average number of the whole array
-                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), int(statistics.mean([cY1, int(yi), cY4]))), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
+                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), /
+                                                                      int(statistics.mean([cY1, int(yi), cY4]))),/
+                                                                      cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                     # puts the outangle onto the screen inbetween the three points
             
             if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))): #checks if the right/left location of the stationary arm
@@ -416,17 +436,18 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
             
             if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
-                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)#run an append on the record function which is a custom made funtion
+                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time()*1000), targetPoint)
+                #run an append on the record function which is a custom made funtion
                 runTarget = False
         else:
             if(cv2.getTrackbarPos("Calibrate", "UI") == 0):
                 Cali.clickNumber = 0
                 Cali.hide = True
-            # stops recording if one of the points disappears from view
 
         cv2.imshow("LiveFeed", ogFrame)  # display frame
 
-    if(cv2.getTrackbarPos("Save?", "UI") == 1 and len(record.dtime) > 0):  # if the user says to save this if statement compiles all the variables into a dicationary
+    if(cv2.getTrackbarPos("Save?", "UI") == 1 and len(record.dtime) > 0):  
+        # if the user says to save this if statement compiles all the variables into a dicationary
         db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2":\
               record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4,\
               "targetPoint": record.targetPoint}  # dictionary of values and each value is an array
@@ -441,7 +462,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
 
         saveLocation = filedialog.asksaveasfilename(filetype = [("All Files", "*")], initialdir = dPath)
         # ^ allow user to pick the name of the save
-        # file and the location to save it defaulting in Documents/CAPT
+        # file and the location to save it defaulting in Documents/CAPT/
 
         # check validity of the assigned save location,
         # if cancel was clicked instead with will not run
