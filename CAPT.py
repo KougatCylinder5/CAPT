@@ -99,9 +99,9 @@ class calibrate:
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
             #grab value of the x,y locations to calibrate
-            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 40, markTwo[2] + 30])
+            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 30, markTwo[2] + 30])
             #upper limit for the colors based upon where it was clicked
-            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 40, markTwo[2] - 30])
+            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 30, markTwo[2] - 30])
             #lower limit for the colors based upon where it was clicked
             self.clickNumber = self.clickNumber + 1
             #adds one to the click number so it goes onto the next color
@@ -159,22 +159,11 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
         if(len(file_path) > 0):
             file = pandas.read_csv(file_path)#reads the csv file
             cv2.setTrackbarPos("Record", "UI", 0)
+            # if valid path is found stop recording
         else:
             cv2.setTrackbarPos("ReWatch?", "UI", 0)
-tDif = 0 
-endThread = False
-def soundAlarm():
-    global tDif
-    global endThread
-    while(not endThread):
-        time.sleep(0.1)
-        if(tDif > 0.1):
-            print(tDif)
-            print(tDif/25)
-            sine(2000,tDif/20)
-
-alarmThread = threading.Thread(target = soundAlarm)
-alarmThread.start()
+            # if the length of the file path is 0 reset it
+            
 
 def brightness(value):
     vid.set(cv2.CAP_PROP_BRIGHTNESS, value)
@@ -188,10 +177,29 @@ def targetA(value):
     global target
     target.targetRadians = (180 - value) * math.pi/180
 
-cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE)
+tDif = 0 #measured in degrees from target
+endThread = False # ends the tread if the main program hangs
+                  # or is quit otherwise a memory leak may occur
+def soundAlarm(): # alarm function
+    global tDif # creates global var for the total difference in angle
+    global endThread # reads the quit varible to exit the thread
+    while(not endThread): # repeat until quit varible trips
+        time.sleep(0.1) # slow it down to prevent camera lagging
+        if(tDif > 0.1 and cv2.getTrackbarPos("Target Angle", "UI") > 0): 
+            # don't a play a ton if its too close or the target angle is 0
+            sine(2000,tDif/20)
+            # most annoying tone I could fine to draw the most attention   
+            
+alarmThread = threading.Thread(target = soundAlarm) # assign a function to a thread 
+alarmThread.start() # start the thread quickly atert
+
+    
+cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE) # create the named windows
 cv2.namedWindow("UI")
 
 cv2.imshow("UI",numpy.ones((50,300),dtype = numpy.uint8))
+#show named windows
+
 
 cv2.createTrackbar("Calibrate", "UI", 0, 1, lambda x: None)  # creating trackbars for grabbing user input
 cv2.createTrackbar("Target Angle", "UI", 0, 200, targetA)
@@ -205,44 +213,46 @@ cv2.createTrackbar("Gain", "UI",0, 200, gain)
 cv2.createTrackbar("Exposure", "UI", 0, 10, exposure)
 
 
-def callback(event, x, y, flags, params):
+def callback(event, x, y, flags, params): #create clickable call back
 
-    if(event == 1 and cv2.getTrackbarPos("Calibrate", "UI") == 1):
+    if(event == 1 and cv2.getTrackbarPos("Calibrate", "UI") == 1): 
+        # if the mouse is clicked and calibrate is 1 call start Calibrating
         Cali.startCalibrating(x, y)
-
+        # calls the calibrating function in Cali
 cv2.setMouseCallback("LiveFeed", callback)
 
 
 angle = [None] * 5  # empty array for averaging the degrees
 
-Cali = calibrate()
+Cali = calibrate() # save an object to a varible
 
-record = recording()
+record = recording() # create a recording object
 
 i = 0  # creates blank value for, the for loop for replaying files
 
-runTarget = False
+runTarget = False # if playing back a file don't calculate the target angle
 
-while(cv2.waitKey(1) != 27):
+while(cv2.waitKey(1) != 27): # loop until esc key is pressed
     
-    if(cv2.getTrackbarPos("Calibrate", "UI") == 1 and Cali.hide):
+    if(cv2.getTrackbarPos("Calibrate", "UI") == 1 and Cali.hide): #reset if trackbar pos is 1
         angle = [None] * 5  # resets the angle array for averaging the angle to prevent irregulaties
 
         print("Choose New Points for color calibration in this order:")
         print("Green, Red, Gold, Blue")
-        Cali.hide = False
-
+        Cali.hide = False # hide the lines connecting the dots
+    ret, frame = vid.read()
+    
     if(cv2.getTrackbarPos("ReWatch?", "UI") == 0 and ret):  # skips a ton of unnessicary logic if the slider isn't in the correct position
-        ret, frame = vid.read()  # read from camera
+         # read from camera
 
-        if(not ret):  # prevents throwing an error due to missing or occupied camera
+        if(not ret):  # throwing an error due to missing or occupied camera
             cv2.destroyAllWindows()
             raise Exception("Camera Not Detected or Disconnected while program is running")
         ogFrame = frame.copy()  # duplicates the frame for overlay purposes
         frame = cv2.blur(frame, (30, 30), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # converts from the BGR to HSV colorspace
 
-        Cali.rawImg = hsv
+        Cali.rawImg = hsv # copy the raw frame to the calibrating object
 
         colorOne = cv2.inRange(hsv, Cali.minColorOne, Cali.maxColorOne)  # grabs the inRange parts of the images
         colorTwo = cv2.inRange(hsv, Cali.minColorTwo, Cali.maxColorTwo)
