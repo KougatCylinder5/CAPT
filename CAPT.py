@@ -139,15 +139,14 @@ class calibrate:
         listY = [cY2, cY1, cY3, cY4]
         #just a list of y locations
         if(self._internalCounterOld < time.time() - 0.2):#basic counting call
-            
-            for i in listX:
+            for i in listX: #repeats itself 4 times one for each color
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
                 
             self._internalCounterOld = time.time()
-            print(self._internalCounterOld)
+            #everytime the loop loops take the current time to delay the next call by 200ms
 
 
-file = None
+file = None # empty file variable for the csv Playback
 
 
 def rewatch(value):  # function to determine if to open a .csv file for playback
