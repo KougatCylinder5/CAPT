@@ -201,8 +201,11 @@ alarmThread.start() # start the thread quickly atert
 
 def camera(value):
     global vid
-    vid = cv2.createCapture(value)
-
+    try:
+        vid = cv2.createCapture(value)
+    except:
+        pass
+    
 cv2.namedWindow("LiveFeed", cv2.WINDOW_AUTOSIZE) # create the named windows
 cv2.namedWindow("UI")
 
