@@ -33,12 +33,11 @@ vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 class targeting: # targeting class to contain varibles and functions
     
     def __init__(self,angle):
-        self.targetRadians = angle * math.pi/180
+        self.targetRadians = (180 - angle) * math.pi/180
         # converts the angle into radians for easier manipulation
         
     def Target(self,info):
         flip = 1
-        removeAdding = 180
             
         if(cv2.getTrackbarPos("Flip Lineside","UI") == 1):
             flip = -1
@@ -109,32 +108,32 @@ class calibrate:
         if(self.clickNumber == 0):
             markTwo = self.rawImg[y, x]
             #grab value of the x,y locations to calibrate
-            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 30, markTwo[2] + 30])
+            self.maxColorTwo = numpy.array([markTwo[0] + 3, markTwo[1] + 30, markTwo[2] + 50])
             #upper limit for the colors based upon where it was clicked
-            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 30, markTwo[2] - 30])
+            self.minColorTwo = numpy.array([markTwo[0] - 3, markTwo[1] - 30, markTwo[2] - 50])
             #lower limit for the colors based upon where it was clicked
             self.clickNumber = self.clickNumber + 1
             #adds one to the click number so it goes onto the next color
         elif(self.clickNumber == 1):
             #same process as above
             markOne = self.rawImg[y, x]
-            self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] + 30, markOne[2] + 30])
-            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 30, markOne[2] - 30])
+            self.maxColorOne = numpy.array([markOne[0] + 3, markOne[1] + 30, markOne[2] + 50])
+            self.minColorOne = numpy.array([markOne[0] - 3, markOne[1] - 30, markOne[2] - 50])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 2):
             #same process as above
             markThree = self.rawImg[y, x]
-            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 30])  
+            self.maxColorThree = numpy.array([markThree[0] + 3, markThree[1] + 30, markThree[2] + 50])  
             # defines upper and lower limit
-            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 30, markThree[2] - 30])
+            self.minColorThree = numpy.array([markThree[0] - 3, markThree[1] - 30, markThree[2] - 50])
             self.clickNumber = self.clickNumber + 1
 
         elif(self.clickNumber == 3):
             #same process as above
             markFour = self.rawImg[y, x]
-            self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] + 30, markFour[2] + 30])
-            self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 30, markFour[2] - 30])
+            self.maxColorFour = numpy.array([markFour[0] + 3, markFour[1] + 30, markFour[2] + 50])
+            self.minColorFour = numpy.array([markFour[0] - 3, markFour[1] - 30, markFour[2] - 50])
             #resets the click number back to 0
             self.clickNumber = 0
             #show the lines again between the points
@@ -186,7 +185,7 @@ def exposure(value): #exposure of the camera
 target = targeting(0) #creates empty object and assigns a default value of 0
 def targetA(value): # grabs the value of the targetangle trackbar and overwrites the angle of the target radians
     global target
-    target = targeting( value)
+    target = targeting(180 - value)
 
 tDif = 0 #measured in degrees from target
 endThread = False # ends the tread if the main program hangs
@@ -267,7 +266,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             cv2.destroyAllWindows()
             raise Exception("Camera Not Detected or Disconnected while program is running")
         ogFrame = frame.copy()  # duplicates the frame for overlay purposes
-        frame = cv2.blur(frame, (30, 30), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
+        frame = cv2.blur(frame, (1, 1), cv2.BORDER_DEFAULT)  # blurs the frame make color detection easier and more uniform
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # converts from the BGR to HSV colorspace
 
         Cali.rawImg = hsv # copy the raw frame to the calibrating object
@@ -277,7 +276,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         colorThree = cv2.inRange(hsv, Cali.minColorThree, Cali.maxColorThree)
         colorFour = cv2.inRange(hsv, Cali.minColorFour, Cali.maxColorFour)
         
-        kernel = numpy.ones((15, 15), numpy.uint8)  # just a 5x5 grid of ones
+        kernel = numpy.ones((1, 1), numpy.uint8)  # just a 5x5 grid of ones
 
         colorOne = cv2.morphologyEx(colorOne, cv2.MORPH_OPEN, kernel)  
         # deletes pixel groups less then 15x15 in size
@@ -289,7 +288,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
 
         colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_OPEN, kernel)
         colorThree = cv2.morphologyEx(colorThree, cv2.MORPH_CLOSE, kernel)
-
+        
         colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_OPEN, kernel)
         colorFour = cv2.morphologyEx(colorFour, cv2.MORPH_CLOSE, kernel)
 
@@ -404,7 +403,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             num = numpy.dot(B, -C)
             denom = numpy.linalg.norm(B) * numpy.linalg.norm(-C)
             try: # this is here because a "true divide" sometimes throws a warning and this hides it
-                angles = numpy.arccos(num/denom) * 180 / numpy.pi
+                angles = 180 - numpy.arccos(num/denom) * 180 / numpy.pi
             except RuntimeWarning:
                 angles = None # pass on the exception because it has no negative effects
             if(numpy.isnan(angles)):
