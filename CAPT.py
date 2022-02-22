@@ -404,6 +404,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             denom = numpy.linalg.norm(B) * numpy.linalg.norm(-C)
             try: # this is here because a "true divide" sometimes throws a warning and this hides it
                 angles = 180 - numpy.arccos(num/denom) * 180 / numpy.pi
+                print(num/denom)
             except RuntimeWarning:
                 angles = None # pass on the exception because it has no negative effects
             if(numpy.isnan(angles)):
