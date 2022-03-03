@@ -1,20 +1,24 @@
 # Cory Mavis
 
-import pandas  # CSV manipulation library
+from pandas import DataFrame, read_csv # CSV manipulation library
 import numpy
-import webbrowser
+from webbrowser import open as Open
 from os import makedirs # creation of file to put results into
-import os.path as path  # directory library
-import statistics # runs median to average angles
-import math # math functions for calculating angles
-import time # record time between frames
-import tkinter as tk  # file manipulation/selection library
-from tkinter import filedialog # allows openning of files
+from os.path import exists as exists  # directory library
+from os.path import expanduser as expanduser
+from os.path import join as join
+from statistics import mean # runs median to average angles
+from math import pi,cos,atan,sin,floor,acos # math functions for calculating angles
+from time import time,sleep # record time between frames
+from tkinter import filedialog as tk  # file manipulation/selection library
+from tkinter import filedialog  # allows opening of files
 import cv2 # camera interaction
 from pysine import sine# plays sound 
-import threading# allows creation of extra threads so that I can play audio without interupting the camera
+from threading import Thread# allows creation of extra threads so that I can play audio without interupting the camera
+from datetime import datetime
 
-webbrowser.open(url = "https://github.com/KougatCylinder5/CAPT/wiki", new = 1)
+
+Open(url = "https://github.com/KougatCylinder5/CAPT/wiki", new = 1)
 
 
 root = tk.Tk() # creates empty Tninter object
@@ -33,7 +37,7 @@ vid.set(cv2.CAP_PROP_EXPOSURE, -1.0)     # camera default modifications
 class targeting: # targeting class to contain varibles and functions
     
     def __init__(self,angle):
-        self.targetRadians = (180 - angle) * math.pi/180
+        self.targetRadians = (180 - angle) * pi/180
         # converts the angle into radians for easier manipulation
         
     def Target(self,info):
@@ -44,17 +48,17 @@ class targeting: # targeting class to contain varibles and functions
         if(self.targetRadians != 0):
             
             slope, x, y, orientation = info#disect info which is a tuple into 4 parts
-            slopeD = math.atan(slope) * 180/math.pi # covert the slope into degrees
+            slopeD = atan(slope) * 180/pi # covert the slope into degrees
             # add the target angle and the current angle of the stationary segment together
             if(orientation == 1):# if the stationary arm is to the left or right
-                combinedD = slopeD + 180 - (self.targetRadians * flip * 180/math.pi)#specialized adding for each side
-                return(round(x + (100 * math.cos(combinedD * math.pi/180))),\
-                       round(y + (100 * math.sin(combinedD * math.pi/180))))
+                combinedD = slopeD + 180 - (self.targetRadians * flip * 180/pi)#specialized adding for each side
+                return(round(x + (100 * cos(combinedD * pi/180))),\
+                       round(y + (100 * sin(combinedD * pi/180))))
                 #draws a straight line fourhundred unit lengths long from xi,yi
             elif(orientation == 0):#specialized adding for each side
-                combinedD = slopeD + (self.targetRadians * flip * 180/math.pi)#specialized adding for each side
-                return(round(x + (-100 * math.cos(combinedD * math.pi/180))),\
-                       round(y + (-100 * math.sin((combinedD * math.pi/180)))))
+                combinedD = slopeD + (self.targetRadians * flip * 180/pi)#specialized adding for each side
+                return(round(x + (-100 * cos(combinedD * pi/180))),\
+                       round(y + (-100 * sin((combinedD * pi/180)))))
                 #same return function as above with -100 so it faces in the correct direction
 class recording:  # stores all the recording related information
 
@@ -70,8 +74,9 @@ class recording:  # stores all the recording related information
         self.dY4 = []
         self.targetPoint = []
         self.flip = []
+        self.rawAngle = []
 
-    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, targetPoint,flip):
+    def append(self, X1, Y1, X2, Y2, X3, Y3, X4, Y4, time, targetPoint,flip,rawAngle):
         # all in one function to append values to an array
         self.dtime.append(time)
         self.dX1.append(X1)
@@ -84,6 +89,7 @@ class recording:  # stores all the recording related information
         self.dY4.append(Y4)
         self.targetPoint.append(targetPoint)
         self.flip.append(flip)
+        self.rawAngle.append(rawAngle)
 
 
 class calibrate:
@@ -99,7 +105,7 @@ class calibrate:
         self.minColorFour = (13, 305, 182)
         self.clickNumber = 0  #records how many times the mouse has been clicked
         self.hide = True  #hides the lines this is an inverted value so !hide
-        self._internalCounterOld = time.time()  #stores the time between autocalibration calls
+        self._internalCounterOld = time()  #stores the time between autocalibration calls
         self.rawImg = None
     # called when calibrating color detection
 
@@ -151,11 +157,11 @@ class calibrate:
         #just a list of x locations
         listY = [cY2, cY1, cY3, cY4]
         #just a list of y locations
-        if(self._internalCounterOld < time.time() - 0.2):#basic counting call
+        if(self._internalCounterOld < time() - 0.2):#basic counting call
             for i in listX: #repeats itself 4 times one for each color
                 Cali.startCalibrating(listX[self.clickNumber],listY[self.clickNumber])
                 
-            self._internalCounterOld = time.time()
+            self._internalCounterOld = time()
             #everytime the loop loops take the current time to delay the next call by 200ms
 
 
@@ -167,7 +173,7 @@ def rewatch(value):  # function to determine if to open a .csv file for playback
     if(value == 1):
         file_path = filedialog.askopenfilename()#open file location 
         if(len(file_path) > 0):
-            file = pandas.read_csv(file_path)#reads the csv file
+            file = read_csv(file_path)#reads the csv file
             cv2.setTrackbarPos("Record", "UI", 0)
             # if valid path is found stop recording
         else:
@@ -194,13 +200,13 @@ def soundAlarm(): # alarm function
     global tDif # creates global var for the total difference in angle
     global endThread # reads the quit varible to exit the thread
     while(not endThread): # repeat until quit varible trips
-        time.sleep(0.1) # slow it down to prevent camera lagging
+        sleep(0.1) # slow it down to prevent camera lagging
         if(tDif > 0.1 and cv2.getTrackbarPos("Target Angle", "UI") > 0): 
             # don't a play a ton if its too close or the target angle is 0
             sine(2000,tDif/20)
             # most annoying tone I could fine to draw the most attention   
             
-alarmThread = threading.Thread(target = soundAlarm) # assign a function to a thread 
+alarmThread = Thread(target = soundAlarm) # assign a function to a thread 
 alarmThread.start() # start the thread quickly atert
 
 def camera(value):
@@ -357,7 +363,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         cv2.circle(ogFrame, (cX3, cY3), 15, (255, 0, 0), -1)
         cv2.circle(ogFrame, (cX4, cY4), 15, (78, 255, 237), -1)
         cv2.waitKey(file["time"][i + 1] - file["time"][i])  # wait for the alotted time so that it doesn't instantly zip to the end
-        cv2.setTrackbarPos("Record","UI",0)
+        #cv2.setTrackbarPos("Record","UI",0)
         
     complete = 0
 
@@ -396,15 +402,14 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             points = numpy.array([[cX1, cY1], [xi, yi], [cX4, cY4]])
             
             B = points[1] - points[0]
-            C = points[2] - points[1]
+            C = points[1] - points[2]
 
             angles = None
 
-            num = numpy.dot(B, -C)
-            denom = numpy.linalg.norm(B) * numpy.linalg.norm(-C)
+            num = numpy.dot(B, C)
+            denom = numpy.linalg.norm(B) * numpy.linalg.norm(C)
             try: # this is here because a "true divide" sometimes throws a warning and this hides it
-                angles = 180 - numpy.arccos(num/denom) * 180 / numpy.pi
-                print(num/denom)
+                angles = 180 - acos(num/denom) * 180 / pi
             except RuntimeWarning:
                 angles = None # pass on the exception because it has no negative effects
             if(numpy.isnan(angles)):
@@ -426,20 +431,20 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             
             
             # I grab angle as thats the inside angle and its always that angle
-            if(angles is not None ):
+            if(angles is not None):
                 angle.append(int(str(round(angles, 0))[:-2]))  
                 # the [:-2] deletes the degrees and decimal point on the number and appends it to angle which is my averaging array
 
                 del angle[0]  # deletes the first of my averaging array
                 
                 if(angle[0] is not None):  # doesn't run this if the averaging array is still filling
-                    outangle = round(statistics.mean(angle))  # take the average number of the whole array
-                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(statistics.mean([cX1, int(xi), cX4])), \
-                                                                      int(statistics.mean([cY1, int(yi), cY4]))),\
+                    outangle = round(mean(angle))  # take the average number of the whole array
+                    cv2.putText(ogFrame, str(outangle) + " degrees", (int(mean([cX1, int(xi), cX4])), \
+                                                                      int(mean([cY1, int(yi), cY4]))),\
                                                                       cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 3)
                     # puts the outangle onto the screen inbetween the three points
             
-            if(statistics.mean((cX2,cX1)) < statistics.mean((cX3,cX4))): #checks if the right/left location of the stationary arm
+            if(mean((cX2,cX1)) < mean((cX3,cX4))): #checks if the right/left location of the stationary arm
                 direction = 1#this means that its on the left arm
             else:
                 direction = 0#this is on the right
@@ -448,14 +453,14 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
             if(not runTarget):  # if its rewatching old recording don't take the new target points
                 targetPoint = target.Target((m1,xi,yi,direction))# get a tuple of an x,y location to put the line and dot
                 if(angle[0] is not None):
-                    tDif = abs(outangle - (target.targetRadians * 180/math.pi))
+                    tDif = abs(outangle - (target.targetRadians * 180/pi))
             if(targetPoint is not None):
                 cv2.circle(ogFrame,targetPoint,15,(150,150,150),-1)#draw aformentioned dot
                 cv2.line(ogFrame,targetPoint,(xi,yi),(150,150,150),10)# draw  line
             
             if(cv2.getTrackbarPos("Record", "UI") == 1):  # only record if the slider says so
                 flip = cv2.getTrackbarPos("Flip Lineside", "UI")
-                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, math.floor(time.time()*1000), targetPoint, flip)
+                record.append(cX1, cY1, cX2, cY2, cX3, cY3, cX4, cY4, floor(time()*1000), targetPoint, flip, angle[0])
                 #run an append on the record function which is a custom made funtion
                 runTarget = False
         else:
@@ -469,14 +474,14 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         # if the user says to save this if statement compiles all the variables into a dicationary
         db = {"time": record.dtime, "cX1": record.dX1, "cY1": record.dY1, "cX2": record.dX2, "cY2":\
               record.dY2, "cX3": record.dX3, "cY3": record.dY3, "cX4": record.dX4, "cY4": record.dY4,\
-              "targetPoint": record.targetPoint, "flip": record.flip}  # dictionary of values and each value is an array
-        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "targetPoint", "flip")  # headers for the .csv file
-        df = pandas.DataFrame(data = db)  # create a data frame with the data equal to db
+              "targetPoint": record.targetPoint, "flip": record.flip, "angle": record.rawAngle}  # dictionary of values and each value is an array
+        columns = ("time", "cX1", "cY1", "cX2", "cY2", "cX3", "cY3", "cX4", "cY4", "targetPoint", "flip", "angle")  # headers for the .csv file
+        df = DataFrame(data = db)  # create a data frame with the data equal to db
 
-        dPath = path.join("C:", "Users", path.expanduser("~"), "Documents", "CAPT")  # file path
+        dPath = join("C:", "Users", expanduser("~"), "Documents", "CAPT")  # file path
 
         # detect if a file exists in a specific directory
-        if(not path.exists(dPath)):
+        if(not exists(dPath)):
             makedirs(dPath)   # create said file if it doesn't exist
 
         saveLocation = filedialog.asksaveasfilename(filetype = [("All Files", "*")], initialdir = dPath)
@@ -486,7 +491,7 @@ while(cv2.waitKey(1) != 27): # loop until esc key is pressed
         # check validity of the assigned save location,
         # if cancel was clicked instead with will not run
         if(len(saveLocation) != 0):
-            df.to_csv(saveLocation)
+            df.to_csv(saveLocation + " " +(str(datetime.now().strftime("%d/%m/%Y %H:%M:%S")).replace(":","-")).replace(" ","-").replace("/","-") + ".csv")
             record = recording()
         cv2.setTrackbarPos("Save?", "UI", 0)
         # reset the trackbar asking if you want to save the
